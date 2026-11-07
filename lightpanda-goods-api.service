@@ -1,0 +1,20 @@
+[Unit]
+Description=Lightpanda Pinduoduo goods API and admin
+After=network-online.target lightpanda.service
+Wants=network-online.target
+Requires=lightpanda.service
+
+[Service]
+Type=simple
+User=lightpanda-api
+Group=lightpanda-api
+WorkingDirectory=/opt/lightpanda-goods-api
+StateDirectory=lightpanda-goods-api
+StateDirectoryMode=0700
+Environment=API_PORT=8766
+ExecStart=/opt/lightpanda-goods-api/.venv/bin/python /opt/lightpanda-goods-api/serve.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

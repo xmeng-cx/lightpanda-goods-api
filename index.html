@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>多多直播 · 商品 API 控制台</title>
+  <style>
+    :root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:#f5f7fb;color:#19263d;font-size:14px}*{box-sizing:border-box}body{margin:0}button,input,textarea,select{font:inherit}.hidden{display:none!important}
+    main{max-width:1280px;margin:0 auto;padding:34px 28px 70px}h1{font-size:30px;letter-spacing:-.7px;margin:0 0 6px}h2{font-size:17px;letter-spacing:-.2px;margin:0 0 15px}p{color:#78879b;line-height:1.65;margin:0 0 12px}a{color:#4b63d0;text-decoration:none}a:hover{text-decoration:underline}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:20px 28px;background:#fff;border:1px solid #e8ecf3;border-radius:16px;box-shadow:0 8px 25px #1f2a4709}.top h1{font-size:21px;margin:0}.top p{font-size:12px;margin:3px 0 0}.top:before{content:'◈';display:grid;place-items:center;width:39px;height:39px;flex:none;color:white;background:linear-gradient(135deg,#6d85fa,#6448d5);border-radius:11px;font-size:21px}.top>div{flex:1}
+    .hero{padding:36px 38px;margin-top:22px;background:radial-gradient(circle at 80% 0%,#4059bc,transparent 40%),linear-gradient(125deg,#13203b,#25366f);border-radius:20px;color:white;position:relative;overflow:hidden}.hero:after{content:'◈';position:absolute;right:6%;top:-62px;font-size:220px;color:#ffffff0c;line-height:1}.hero span{display:block;color:#a9bbff;font-size:11px;letter-spacing:2px;font-weight:800;margin-bottom:13px}.hero h2{font-size:27px;margin:0 0 9px}.hero p{color:#c2cfeb;max-width:550px;margin:0}
+    .card{background:#fff;border:1px solid #e5eaf2;border-radius:16px;padding:24px;margin-top:20px;box-shadow:0 8px 28px #1b2b4a08}.narrow{max-width:440px;margin:65px auto}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.grid .card{margin-top:20px}label{display:block;font-size:12px;font-weight:750;color:#45546c;margin:15px 0 8px}input,textarea,select{width:100%;padding:11px 12px;border:1px solid #dce3ed;border-radius:9px;outline:none;color:#24334b;background:#fff}input:focus,textarea:focus,select:focus{border-color:#6e80e9;box-shadow:0 0 0 3px #667de922}textarea{min-height:132px;resize:vertical;line-height:1.55}
+    button{font-weight:700;color:white;background:#5068dc;border:1px solid transparent;border-radius:9px;padding:10px 15px;cursor:pointer;transition:background .15s,transform .15s}button:hover:not(:disabled){background:#3e56c8;transform:translateY(-1px)}button.secondary{color:#425578;background:#f1f4fb;border-color:#e1e7f2}button.secondary:hover{background:#e9eef8}button.danger{color:#bd4c4f;background:#fff2f1;border-color:#f8e1df}button.danger:hover{background:#ffe9e7}button:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:17px}
+    .badge{display:inline-flex;align-items:center;gap:7px;border-radius:99px;background:#edf2f8;color:#607087;padding:7px 11px;font-size:12px;font-weight:700}.badge:before{content:'';height:7px;width:7px;border-radius:50%;background:currentColor}.badge.ok{color:#168a60;background:#e8f8f0}.badge.warn{color:#b67818;background:#fff3dc}.muted{color:#8b99aa;font-size:12px}.error{color:#bd4747;min-height:0;margin-top:10px;white-space:pre-wrap;font-size:12px}.error:empty{display:none}.qr{width:228px;max-width:100%;image-rendering:pixelated;display:block;margin:14px auto;padding:10px;border:1px solid #e7ebf2;border-radius:13px}.secret{background:#f5f7ff;border:1px solid #dfe6f7;border-radius:11px;padding:15px;word-break:break-all}
+    table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:12px 11px;text-align:left;border-bottom:1px solid #edf0f5;vertical-align:middle}th{background:#f8fafd;color:#8795a8;font-size:11px;white-space:nowrap}td{color:#41516a}tr:last-child td{border-bottom:0}.scroll{overflow-x:auto}code{background:#eef2fa;color:#425bb5;padding:3px 5px;border-radius:5px;font-family:ui-monospace,Consolas,monospace;font-size:12px}.hidden{display:none!important}
+    .docs-intro{display:flex;justify-content:space-between;align-items:center;gap:16px}.endpoint{border-top:1px solid #edf0f5;padding:21px 0}.endpoint:first-of-type{border:0}.endpoint h3{margin:0 0 9px;font-size:15px}.method{display:inline-block;margin-right:7px;padding:4px 7px;border-radius:5px;background:#e8f7ef;color:#179063;font-size:11px;font-weight:800}.method.post{background:#edf0ff;color:#5a60c4}.api-path{font:700 13px ui-monospace,Consolas,monospace;color:#263853}.doc-table{margin:12px 0 20px}.code-head{background:#23314c;color:#adbcda;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:9px 9px 0 0;font-size:11px;font-weight:700}.code-head button{padding:2px 6px;border:0;background:transparent;color:#b9c9e7;font-size:11px}.code-head button:hover{color:#fff;background:transparent}pre{background:#152139;color:#cde0fa;padding:16px;border-radius:0 0 9px 9px;overflow:auto;margin:0 0 17px;font:12px/1.65 ui-monospace,Consolas,monospace}.docs-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:17px}.docs-nav a{padding:7px 11px;border-radius:8px;background:#eef2fa;font-size:12px;font-weight:700}.doc-note{background:#f4f6ff;border:1px solid #e5eafb;border-radius:10px;padding:12px 14px;font-size:12px;color:#5f7193;line-height:1.6;margin:14px 0}
+    @media(max-width:780px){main{padding:14px 14px 48px}.grid{grid-template-columns:1fr}.hero{padding:27px}.hero h2{font-size:22px}.hero:after{display:none}.top{padding:14px}.top h1{font-size:16px}.docs-intro{display:block}}
+    body:has(#loginCard:not(.hidden)){background:radial-gradient(circle at 16% 24%,#dce5ff 0,transparent 27%),radial-gradient(circle at 85% 78%,#e8defe 0,transparent 30%),#f6f8fc}
+    body:has(#loginCard:not(.hidden)) main{min-height:100vh;display:flex;flex-direction:column}
+    #loginCard{width:100%;padding:32px;box-shadow:0 22px 70px #293a6c14;margin:auto;transform:translateY(-20px)}
+    #loginCard:before{content:'ADMIN ACCESS';display:block;color:#5f70d3;font-size:11px;letter-spacing:2px;font-weight:800;margin-bottom:13px}
+    #loginCard h2{font-size:26px;letter-spacing:-.5px;margin-bottom:7px}
+    #loginCard .login-sub{font-size:13px;margin-bottom:22px}
+    #loginCard label{margin-top:0}
+    #adminLogin{width:100%;margin-top:4px}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="top"><div><h1>多多直播商品 API</h1><p>商家会话、API Key 与商品查询</p></div><button id="adminLogout" class="secondary hidden">退出后台</button></div>
+
+    <section id="loginCard" class="card narrow">
+      <h2>欢迎回来</h2>
+      <p class="login-sub">输入管理密码，进入多多直播商品 API 控制台。</p>
+      <label for="password">管理密码</label>
+      <input id="password" type="password" autocomplete="current-password">
+      <div class="actions"><button id="adminLogin">登录后台</button></div>
+      <div id="loginError" class="error"></div>
+    </section>
+
+    <div id="dashboard" class="hidden">
+      <div class="hero"><span>GOODS API · CONTROL CENTER</span><h2>商品查询，尽在掌控。</h2><p>集中管理商家登录、访问密钥与直播商品查询。登录失效时，直接在这里扫码恢复会话。</p></div>
+      <div class="grid">
+        <section class="card">
+          <h2>商家登录</h2>
+          <span id="merchantBadge" class="badge">正在检查…</span>
+          <p id="merchantNote" style="margin-top:13px">登录失效时请扫码。</p>
+          <img id="merchantQr" class="qr hidden" alt="拼多多商家登录二维码">
+          <div class="actions"><button id="merchantLogin" class="secondary">显示登录二维码</button><button id="merchantLogout" class="danger">注销商家登录</button></div>
+          <div id="merchantError" class="error"></div>
+        </section>
+
+        <section class="card">
+          <h2>API Key</h2>
+          <label for="keyLabel">新 Key 名称</label>
+          <input id="keyLabel" placeholder="例如：销量查询脚本" maxlength="64">
+          <div class="actions"><button id="createKey">创建 Key</button></div>
+          <div id="newKeyBox" class="secret hidden" style="margin-top:14px"><strong>请立即保存，离开后无法再次查看：</strong><div id="newKey" style="margin:8px 0"></div><button id="copyKey" class="secondary">复制 Key</button></div>
+          <div class="scroll" style="margin-top:16px"><table><thead><tr><th>名称</th><th>前缀</th><th>创建时间</th><th>最近使用</th><th>状态</th><th>操作</th></tr></thead><tbody id="keyRows"></tbody></table></div>
+          <div id="keyError" class="error"></div>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2>试查商品</h2>
+        <label for="show">可编辑商品的直播场次</label>
+        <select id="show"><option value="">正在读取…</option></select>
+        <label for="ids">商品 ID</label>
+        <textarea id="ids" placeholder="每行一个，也支持逗号、空格、分号"></textarea>
+        <div class="actions"><button id="query">查询</button><span id="queryHint" class="muted"></span></div>
+        <div id="queryError" class="error"></div>
+        <div id="queryResult" class="hidden" style="margin-top:15px"><strong id="querySummary"></strong><div class="scroll" style="margin-top:10px"><table><thead><tr><th>商品 ID</th><th>结果</th><th>名称</th><th>价格(元)</th><th>库存</th><th>销量</th><th>已拼显示</th><th>原因</th></tr></thead><tbody id="goodsRows"></tbody></table></div></div>
+      </section>
+
+      <section class="card" id="apiDocs">
+        <div class="docs-intro"><div><h2>API 文档</h2><p>认证、接口参数、返回字段与调用示例。完整机器可读定义见 <a href="/docs" target="_blank" rel="noopener">OpenAPI 文档 ↗</a></p></div><span class="badge ok">API v1</span></div>
+        <nav class="docs-nav" aria-label="文档目录"><a href="#doc-start">开始使用</a><a href="#doc-shows">直播场次</a><a href="#doc-get">GET 查询</a><a href="#doc-post">POST 批量</a><a href="#doc-result">返回结果</a><a href="#doc-errors">错误处理</a></nav>
+        <div class="endpoint" id="doc-start"><h3>开始使用</h3><p>先在上方创建 API Key，并确保商家已扫码登录。每个 API 请求都需要带 <code>X-API-Key</code> 请求头；服务地址为 <code>http://192.168.1.144:8766</code>。</p><div class="doc-note">浏览器地址栏无法设置自定义请求头。请使用 Python、curl 或支持添加请求头的 API 工具调用。</div><h3>Python 完整示例</h3><div class="code-head"><span>python · requests</span><button type="button" data-copy="examplePython">复制</button></div><pre id="examplePython">import requests
+
+base_url = "http://192.168.1.144:8766"
+headers = {"X-API-Key": "替换为后台创建的Key"}
+
+response = requests.get(
+    f"{base_url}/v1/goods",
+    params={"ids": "1024677243708"},
+    headers=headers,
+    timeout=60,
+)
+response.raise_for_status()
+result = response.json()
+for goods in result["goodsList"]:
+    print(goods["goodsId"], goods["soldQuantity"], goods["soldQuantityTip"])</pre></div>
+        <div class="endpoint" id="doc-shows"><h3><span class="method">GET</span><span class="api-path">/v1/shows</span></h3><p>获取当前账号可添加商品的直播场次。查询商品可传其中的 <code>showId</code>；省略时默认使用第一场。</p><div class="code-head"><span>curl</span><button type="button" data-copy="exampleShows">复制</button></div><pre id="exampleShows">curl -H 'X-API-Key: 你的Key' \
+  'http://192.168.1.144:8766/v1/shows'</pre><div class="code-head"><span>响应示例</span><button type="button" data-copy="responseShows">复制</button></div><pre id="responseShows">{"shows":[{"showId":"20261105_1080238172_01","title":"直播场次标题","time":"11/05 17:09"}]}</pre></div>
+        <div class="endpoint" id="doc-get"><h3><span class="method">GET</span><span class="api-path">/v1/goods</span></h3><p>按商品 ID 查询。<code>ids</code> 必填，可传一个或多个 10–20 位商品 ID；多个 ID 用逗号分隔。<code>showId</code> 可选。</p><table class="doc-table"><thead><tr><th>查询参数</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>ids</code></td><td>是</td><td>1–1000 个商品 ID，例如 <code>1024677243708,1024614545320</code></td></tr><tr><td><code>showId</code></td><td>否</td><td>指定当前可编辑场次；省略时使用第一场</td></tr></tbody></table><div class="code-head"><span>curl</span><button type="button" data-copy="exampleGet">复制</button></div><pre id="exampleGet">curl -H 'X-API-Key: 你的Key' \
+  'http://192.168.1.144:8766/v1/goods?ids=1024677243708,1024614545320'</pre></div>
+        <div class="endpoint" id="doc-post"><h3><span class="method post">POST</span><span class="api-path">/v1/goods/query</span></h3><p>批量查询商品。请求体为 JSON；<code>goodsIds</code> 必填，可以是 ID 数组或以逗号、空格、换行分隔的字符串。<code>showId</code> 可选。</p><div class="code-head"><span>curl · application/json</span><button type="button" data-copy="examplePost">复制</button></div><pre id="examplePost">curl -X POST 'http://192.168.1.144:8766/v1/goods/query' \
+  -H 'X-API-Key: 你的Key' \
+  -H 'Content-Type: application/json' \
+  -d '{"goodsIds":[1024677243708,1024614545320]}'</pre><p>指定直播场次时，在 JSON 中加入 <code>"showId":"从 /v1/shows 获取的场次 ID"</code>。接口只检查商品信息，不执行确认添加。</p></div>
+        <div class="endpoint" id="doc-result"><h3>返回结果与字段</h3><p>成功时返回 HTTP 200。个别商品无法添加时，原因会出现在 <code>failures</code> 中。</p><div class="code-head"><span>示例响应 · 商品对象已精简</span><button type="button" data-copy="responseGoods">复制</button></div><pre id="responseGoods">{
+  "showId": "20261105_1080238172_01",
+  "requestedCount": 1,
+  "successCount": 1,
+  "failureCount": 0,
+  "goodsList": [{
+    "goodsId": 1024677243708,
+    "title": "商品名称",
+    "price": 5290,
+    "priceYuan": 52.9,
+    "stock": 48000,
+    "soldQuantity": 106,
+    "soldQuantityTip": "已拼0单"
+  }],
+  "failures": [],
+  "source": "browser"
+}</pre><table class="doc-table"><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>price</code> / <code>priceYuan</code></td><td>价格，分别以分 / 元表示</td></tr><tr><td><code>soldQuantity</code></td><td>平台返回的销量数值</td></tr><tr><td><code>soldQuantityTip</code></td><td>平台返回的“已拼”显示文本，与销量分别展示</td></tr><tr><td><code>failures</code></td><td>未成功的商品 ID 和原因</td></tr><tr><td><code>source</code></td><td><code>direct</code> 直接请求；<code>browser</code> 浏览器页面流程</td></tr></tbody></table></div>
+        <div class="endpoint" id="doc-errors"><h3>错误处理</h3><table class="doc-table"><thead><tr><th>状态码</th><th>含义</th><th>处理方式</th></tr></thead><tbody><tr><td>400</td><td>ID 或场次参数不合法</td><td>检查格式、数量、场次</td></tr><tr><td>401</td><td>API Key 无效或已撤销</td><td>检查请求头或新建 Key</td></tr><tr><td>409</td><td>商家登录失效</td><td>在本后台扫码登录后重试</td></tr><tr><td>422</td><td>请求体格式错误</td><td>检查 JSON 与必填字段</td></tr><tr><td>503</td><td>浏览器或上游页面暂不可用</td><td>稍后重试，检查后台状态</td></tr></tbody></table><div class="code-head"><span>登录失效示例 · HTTP 409</span><button type="button" data-copy="responseError">复制</button></div><pre id="responseError">{"detail":{"code":"LOGIN_REQUIRED","message":"商家登录已失效，请在管理后台扫码","adminUrl":"/admin"}}</pre></div>
+      </section>
+    </div>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    let adminReady = false, merchantBusy = false, queryBusy = false, lastKey = '';
+    const docsWalker = document.createTreeWalker($('apiDocs'), NodeFilter.SHOW_TEXT);
+    while (docsWalker.nextNode()) docsWalker.currentNode.nodeValue = docsWalker.currentNode.nodeValue.replaceAll('http://192.168.1.144:8766', location.origin);
+    document.querySelectorAll('[data-copy]').forEach(button => button.onclick = async () => {
+      const value = $(button.dataset.copy).textContent;
+      try { await navigator.clipboard.writeText(value); }
+      catch { const field=document.createElement('textarea');field.value=value;document.body.append(field);field.select();document.execCommand('copy');field.remove(); }
+      const original=button.textContent;button.textContent='已复制';setTimeout(()=>button.textContent=original,1500);
+    });
+
+    async function request(path, options = {}) {
+      const response = await fetch(path, {cache:'no-store', credentials:'same-origin', ...options});
+      const data = await response.json();
+      if (!response.ok) throw Object.assign(new Error(typeof data.detail === 'string' ? data.detail : data.detail?.message || JSON.stringify(data.detail)), {status:response.status});
+      return data;
+    }
+    function jsonOptions(body, method='POST') { return {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)}; }
+    function showDashboard(ready) {
+      adminReady = ready;
+      $('loginCard').classList.toggle('hidden', ready);
+      $('dashboard').classList.toggle('hidden', !ready);
+      $('adminLogout').classList.toggle('hidden', !ready);
+    }
+    async function checkSession() {
+      try { await request('/admin/api/session'); showDashboard(true); await Promise.all([refreshKeys(), refreshMerchant()]); }
+      catch { showDashboard(false); }
+    }
+    $('adminLogin').onclick = async () => {
+      $('loginError').textContent = '';
+      try { await request('/admin/api/session', jsonOptions({password:$('password').value})); $('password').value=''; showDashboard(true); await Promise.all([refreshKeys(),refreshMerchant()]); }
+      catch (error) { $('loginError').textContent = error.message; }
+    };
+    $('password').addEventListener('keydown', e => { if (e.key === 'Enter') $('adminLogin').click(); });
+    $('adminLogout').onclick = async () => { await request('/admin/api/session/logout', {method:'POST'}); showDashboard(false); };
+
+    async function refreshMerchant() {
+      if (!adminReady || merchantBusy || queryBusy) return;
+      try {
+        const data = await request('/admin/api/merchant');
+        $('merchantBadge').textContent = data.authenticated ? '商家已登录' : '需要扫码登录';
+        $('merchantBadge').className = 'badge ' + (data.authenticated ? 'ok' : 'warn');
+        $('merchantQr').classList.toggle('hidden', data.authenticated || !data.qrImage);
+        if (data.qrImage) $('merchantQr').src = data.qrImage;
+        $('merchantNote').textContent = data.authenticated ? '登录有效，可以查询商品。' : '请用拼多多商家版 App 扫码并在手机上确认。';
+        if (data.authenticated && data.shows?.length) {
+          const selected = $('show').value;
+          $('show').replaceChildren();
+          data.shows.forEach(show => { const option = new Option(`${show.title} · ${show.showId}`, show.showId); $('show').append(option); });
+          if ([...$('show').options].some(x=>x.value===selected)) $('show').value = selected;
+        } else {
+          $('show').replaceChildren(new Option(data.authenticated ? '当前无可编辑场次' : '请先扫码登录', ''));
+        }
+        $('query').disabled = !data.authenticated || !$('show').value;
+        $('merchantError').textContent = '';
+      } catch (error) { $('merchantError').textContent = error.message; }
+    }
+    $('merchantLogin').onclick = async () => { merchantBusy=true; try { await request('/admin/api/merchant/login', {method:'POST'}); } catch(e) { $('merchantError').textContent=e.message; } finally { merchantBusy=false; refreshMerchant(); } };
+    $('merchantLogout').onclick = async () => { merchantBusy=true; try { await request('/admin/api/merchant/logout', {method:'POST'}); $('merchantQr').classList.add('hidden'); } catch(e) { $('merchantError').textContent=e.message; } finally { merchantBusy=false; refreshMerchant(); } };
+
+    async function refreshKeys() {
+      if (!adminReady) return;
+      try {
+        const data = await request('/admin/api/keys');
+        $('keyRows').replaceChildren();
+        data.keys.forEach(key => {
+          const row=document.createElement('tr');
+          [key.label,key.prefix,key.createdAt,key.lastUsedAt||'—',key.revokedAt?'已撤销':'有效'].forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.append(cell)});
+          const cell=document.createElement('td');
+          if (!key.revokedAt) { const button=document.createElement('button');button.className='danger';button.textContent='撤销';button.onclick=()=>revokeKey(key.id);cell.append(button); }
+          row.append(cell);$('keyRows').append(row);
+        });
+      } catch(error) { $('keyError').textContent=error.message; }
+    }
+    $('createKey').onclick = async () => {
+      $('keyError').textContent='';
+      try { const data=await request('/admin/api/keys',jsonOptions({label:$('keyLabel').value.trim()})); lastKey=data.token; $('newKey').textContent=lastKey; $('newKeyBox').classList.remove('hidden'); $('keyLabel').value=''; await refreshKeys(); }
+      catch(error) { $('keyError').textContent=error.message; }
+    };
+    $('copyKey').onclick = async () => {
+      try { await navigator.clipboard.writeText(lastKey); }
+      catch { const field=document.createElement('textarea');field.value=lastKey;document.body.append(field);field.select();document.execCommand('copy');field.remove(); }
+      $('copyKey').textContent='已复制';setTimeout(()=>$('copyKey').textContent='复制 Key',1500);
+    };
+    async function revokeKey(id) {
+      if (!confirm('确定撤销这个 API Key？')) return;
+      try { await request(`/admin/api/keys/${id}`,{method:'DELETE'}); await refreshKeys(); }
+      catch(error) { $('keyError').textContent=error.message; }
+    }
+
+    $('query').onclick = async () => {
+      queryBusy=true;$('query').disabled=true;$('queryError').textContent='';$('queryHint').textContent='正在查询…';
+      try {
+        const data=await request('/admin/api/goods/query',jsonOptions({goodsIds:$('ids').value,showId:$('show').value}));
+        $('querySummary').textContent=`查询 ${data.requestedCount} 个，成功 ${data.successCount} 个，不可添加 ${data.failureCount} 个 · ${data.source==='direct'?'直接 POST':'浏览器页面检查'}`;
+        const byId=new Map(data.goodsList.map(g=>[String(g.goodsId),{goods:g}]));
+        data.failures.forEach(f=>byId.set(String(f.goodsId),{failure:f}));
+        $('goodsRows').replaceChildren();
+        [...new Set($('ids').value.trim().split(/[\s,;，；]+/).filter(Boolean))].forEach(id=>{
+          const item=byId.get(id);if(!item)return;const g=item.goods,f=item.failure;
+          const values=[id,f?'不可添加':'成功',g?.title||'',g?.priceYuan??'',g?.stock??'',g?.soldQuantity??'',g?.soldQuantityTip??'',f?.reason||''];
+          const row=document.createElement('tr');values.forEach(value=>{const cell=document.createElement('td');cell.textContent=value;row.append(cell)});$('goodsRows').append(row);
+        });
+        $('queryResult').classList.remove('hidden');
+      } catch(error) { $('queryError').textContent=error.message; }
+      finally { queryBusy=false;$('queryHint').textContent='';refreshMerchant(); }
+    };
+    checkSession();
+    setInterval(refreshMerchant,3000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.venv/
+deps/
+*.sqlite3
+*.db
+cookies.json
+admin.json
+bootstrap-password.txt
+.env
+*.log
