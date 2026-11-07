@@ -4,7 +4,7 @@ Python/FastAPI 管理后台与商品查询接口，使用仓库内的 Lightpanda
 
 ## 一键安装（Armbian / Debian / Ubuntu ARM64）
 
-私人仓库无法匿名下载。先在目标服务器安装并登录 GitHub CLI（`gh auth login`），确认该账号有本仓库读取权限，然后运行一行命令：
+要求 Linux ARM64/aarch64、glibc 2.38 或更新版本，以及 `apt-get`。私人仓库无法匿名下载。先在目标服务器安装并登录 GitHub CLI（`gh auth login`），确认该账号有本仓库读取权限，然后运行一行命令：
 
 ```bash
 dir=$(mktemp -d) && gh repo clone xmeng-cx/lightpanda-goods-api "$dir/project" && sudo bash "$dir/project/install.sh"

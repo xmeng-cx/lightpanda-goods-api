@@ -16,6 +16,11 @@ case $(uname -m) in
   *) echo '随仓库提供的 Lightpanda 二进制仅支持 Linux ARM64/aarch64。' >&2; exit 1 ;;
 esac
 command -v apt-get >/dev/null || { echo '安装脚本需要 Armbian/Debian/Ubuntu 的 apt-get。' >&2; exit 1; }
+GLIBC_VERSION=$(getconf GNU_LIBC_VERSION | awk '{print $2}')
+if ! dpkg --compare-versions "$GLIBC_VERSION" ge 2.38; then
+  echo "Lightpanda ARM64 二进制需要 glibc >= 2.38，当前为 $GLIBC_VERSION。" >&2
+  exit 1
+fi
 printf '%s  %s\n' "$EXPECTED_SHA256" "$SCRIPT_DIR/vendor/lightpanda-aarch64-linux" | sha256sum --check --status || {
   echo 'Lightpanda 二进制校验失败，停止安装。' >&2
   exit 1
