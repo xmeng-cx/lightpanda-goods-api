@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>多多直播商品查询</title>
+  <style>
+    :root { font-family: system-ui, "Microsoft YaHei", sans-serif; color: #17212b; background: #f4f6f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 1180px; margin: 32px auto; padding: 0 20px; }
+    h1 { margin: 0 0 8px; font-size: 26px; }
+    p { margin: 0; color: #637080; }
+    .card { background: white; border: 1px solid #e1e6ec; border-radius: 14px; padding: 22px; margin-top: 20px; box-shadow: 0 4px 18px #10203008; }
+    label { display: block; font-weight: 650; margin: 18px 0 8px; }
+    input, select, textarea { width: 100%; border: 1px solid #cbd3dd; border-radius: 9px; padding: 11px 12px; font: inherit; background: #fff; color: #17212b; }
+    textarea { min-height: 170px; resize: vertical; line-height: 1.5; }
+    textarea:focus, select:focus, input:focus { outline: 2px solid #2f80ed55; border-color: #2f80ed; }
+    .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+    button { background: #1769cf; border: 0; color: #fff; border-radius: 9px; padding: 10px 19px; font: inherit; font-weight: 650; cursor: pointer; }
+    button.secondary { color: #1769cf; background: #eaf2ff; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .badge { display: inline-block; border-radius: 99px; padding: 5px 11px; background: #e8eef4; font-size: 13px; }
+    .badge.ok { color: #136d3f; background: #e3f5ea; }
+    .badge.warn { color: #9c5310; background: #fff0d9; }
+    .message { color: #b13232; margin-top: 12px; min-height: 24px; white-space: pre-wrap; }
+    .summary { font-weight: 650; margin-bottom: 14px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; border-bottom: 1px solid #e6eaf0; padding: 10px; vertical-align: top; }
+    th { white-space: nowrap; background: #f8fafc; }
+    td.id { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    td.title { min-width: 300px; }
+    td.note { min-width: 250px; color: #ad5632; }
+    .modal { position: fixed; inset: 0; background: #13213099; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 10; }
+    .modal.hidden { display: none; }
+    .modal-box { background: #fff; padding: 26px; border-radius: 16px; text-align: center; width: min(420px, 100%); box-shadow: 0 20px 60px #0003; }
+    .modal-box h2 { margin: 0 0 8px; }
+    .modal-box img { display: block; width: min(320px, 100%); margin: 18px auto; image-rendering: pixelated; }
+    .spinner { height: 320px; display: grid; place-items: center; color: #637080; }
+    .key-row { display:flex; gap:10px; align-items:center; }
+    .key-row input { flex:1; min-width:0; }
+    .key-row button { white-space:nowrap; }
+    .admin-link { display:inline-block; margin:20px 0 8px; padding:11px 18px; border-radius:9px; color:white; background:#1769cf; font-weight:700; text-decoration:none; }
+    .admin-link:hover { background:#0d57b1; }
+    @media(max-width:700px) { .key-row { flex-wrap:wrap; } .key-row input { flex-basis:100%; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>多多直播商品查询</h1>
+    <p>通过商品 API 查询可添加状态、价格、库存和销量。不会执行“确认添加”。</p>
+    <section class="card">
+      <label for="apiKey">API Key</label>
+      <div class="key-row"><input id="apiKey" type="password" autocomplete="off" placeholder="粘贴从 8766 管理后台创建的 API Key"><button id="saveKey">保存并连接</button><button id="clearKey" class="secondary">清除</button></div>
+      <p style="margin-top:9px;font-size:12px">Key 只保存在当前浏览器中。没有 Key？<a id="createKeyLink" href="#" target="_blank" rel="noopener">打开 API 管理后台</a>。</p>
+      <span id="authBadge" class="badge">等待 API Key…</span>
+      <label for="show">可编辑商品的直播场次</label>
+      <select id="show"><option value="">正在读取场次…</option></select>
+      <label for="ids">商品 ID（每行一个，也支持逗号、空格或分号）</label>
+      <textarea id="ids" placeholder="1024677243708&#10;1024614545320"></textarea>
+      <div class="row">
+        <button id="queryButton" disabled>查询商品</button>
+        <span id="count">0 个 ID</span>
+      </div>
+      <div id="message" class="message" role="status"></div>
+    </section>
+    <section class="card" id="results" hidden>
+      <div class="row" style="justify-content:space-between;margin-top:0">
+        <div id="summary" class="summary"></div>
+        <button id="download" class="secondary">下载 CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>商品 ID</th><th>结果</th><th>商品名称</th><th>价格</th><th>库存</th><th>销量(件)</th><th>已拼显示</th><th>提示 / 原因</th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  <div id="loginModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="商家扫码登录">
+    <div class="modal-box">
+      <h2>商家登录已失效</h2>
+      <p>请在 API 管理后台扫码，两个页面共用同一商家会话。</p>
+      <a id="adminLink" class="admin-link" href="#" target="_blank" rel="noopener">打开后台扫码登录 ↗</a>
+      <div class="row" style="justify-content:center"><button id="checkLogin" class="secondary">已登录，刷新状态</button></div>
+      <p style="margin-top:18px;font-size:12px">登录成功后此窗口会自动关闭</p>
+    </div>
+  </div>
+  <script>
+    const $ = id => document.getElementById(id);
+    let authenticated = false;
+    let busy = false;
+    let statusBusy = false;
+    let lastResult = null;
+    const keyStorage = 'lightpanda_goods_web_api_key';
+    $('apiKey').value = localStorage.getItem(keyStorage) || '';
+    const adminUrl = new URL(location.href);
+    adminUrl.port = '8766';
+    adminUrl.pathname = '/admin';
+    adminUrl.search = '';
+    adminUrl.hash = '';
+    $('adminLink').href = adminUrl.href;
+    $('createKeyLink').href = adminUrl.href;
+    const currentKey = () => localStorage.getItem(keyStorage) || '';
+    const detailMessage = data => typeof data.detail === 'string' ? data.detail : data.detail?.message || '请求失败';
+    $('saveKey').onclick = () => {
+      const key = $('apiKey').value.trim();
+      if (!key) { $('message').textContent = '请先填写 API Key'; return; }
+      localStorage.setItem(keyStorage, key);
+      $('message').textContent = '';
+      refreshStatus();
+    };
+    $('clearKey').onclick = () => {
+      localStorage.removeItem(keyStorage);
+      $('apiKey').value = '';
+      authenticated = false;
+      lastResult = null;
+      $('queryButton').disabled = true;
+      $('results').hidden = true;
+      $('authBadge').textContent = '等待 API Key';
+      $('authBadge').className = 'badge';
+      $('loginModal').classList.add('hidden');
+      $('show').replaceChildren(new Option('请先填写 API Key', ''));
+      $('message').textContent = '';
+    };
+    $('checkLogin').onclick = refreshStatus;
+
+    function idsFromInput() {
+      return [...new Set($('ids').value.trim().split(/[\s,;，；]+/).filter(Boolean))];
+    }
+    function updateCount() { $('count').textContent = `${idsFromInput().length} 个 ID`; }
+    $('ids').addEventListener('input', updateCount);
+
+    async function refreshStatus() {
+      if (busy || statusBusy) return;
+      const key = currentKey();
+      if (!key) return;
+      statusBusy = true;
+      try {
+        const response = await fetch('/api/status', {cache: 'no-store', headers: {'X-API-Key': key}});
+        const data = await response.json();
+        if (!response.ok) throw Object.assign(new Error(detailMessage(data)), {status: response.status});
+        authenticated = data.authenticated;
+        $('authBadge').textContent = authenticated ? '商家已登录' : '等待商家扫码登录';
+        $('authBadge').className = 'badge ' + (authenticated ? 'ok' : 'warn');
+        $('loginModal').classList.toggle('hidden', authenticated);
+        if (authenticated) {
+          const previous = $('show').value;
+          if (data.shows?.length) {
+            $('show').replaceChildren();
+            for (const show of data.shows) {
+              const option = document.createElement('option');
+              option.value = show.showId;
+              option.textContent = `${show.title} · ${show.time} · ${show.showId}`;
+              $('show').append(option);
+            }
+            if ([...$('show').options].some(x => x.value === previous)) $('show').value = previous;
+          } else {
+            $('show').replaceChildren(new Option('当前无可编辑商品的场次', ''));
+          }
+          $('queryButton').disabled = !$('show').value;
+          $('message').textContent = '';
+        } else {
+          $('queryButton').disabled = true;
+          $('show').replaceChildren(new Option('请先到 API 管理后台扫码', ''));
+        }
+      } catch (error) {
+        authenticated = false;
+        $('queryButton').disabled = true;
+        $('loginModal').classList.add('hidden');
+        $('authBadge').textContent = error.status === 401 ? 'API Key 无效' : 'API 连接失败';
+        $('authBadge').className = 'badge warn';
+        $('message').textContent = error.message;
+      } finally { statusBusy = false; }
+    }
+
+    function warning(goods) {
+      return (goods.redBoxTipsVO?.textVOList || []).map(x => x.text).filter(Boolean).join('；');
+    }
+    function displayRows(data) {
+      const byId = new Map(data.goodsList.map(x => [String(x.goodsId), {goods: x}]));
+      for (const failure of data.failures) byId.set(String(failure.goodsId), {failure});
+      $('rows').replaceChildren();
+      for (const id of idsFromInput()) {
+        const item = byId.get(id);
+        if (!item) continue;
+        const g = item.goods, f = item.failure;
+        const values = [id, f ? '不可添加' : '成功', g?.title || '', g ? `¥${(g.price / 100).toFixed(2)}` : '', g?.stock ?? '', g?.soldQuantity ?? '', g?.soldQuantityTip ?? '', f?.reason || (g ? warning(g) : '')];
+        const row = document.createElement('tr');
+        values.forEach((value, index) => {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          if (index === 0) cell.className = 'id';
+          if (index === 2) cell.className = 'title';
+          if (index === 7) cell.className = 'note';
+          row.append(cell);
+        });
+        $('rows').append(row);
+      }
+      $('summary').textContent = `共查询 ${data.requestedCount} 个 · 成功 ${data.successCount} 个 · 不可添加 ${data.failureCount} 个`;
+      $('results').hidden = false;
+    }
+
+    $('queryButton').addEventListener('click', async () => {
+      const ids = idsFromInput();
+      if (!ids.length) { $('message').textContent = '请先输入商品 ID'; return; }
+      busy = true;
+      $('queryButton').disabled = true;
+      $('message').textContent = '正在查询，请稍候…';
+      try {
+        const response = await fetch('/api/query', {
+          method: 'POST', headers: {'Content-Type': 'application/json', 'X-API-Key': currentKey()},
+          body: JSON.stringify({goodsIds: $('ids').value, showId: $('show').value})
+        });
+        const data = await response.json();
+        if (!response.ok) throw Object.assign(new Error(detailMessage(data)), {status: response.status});
+        lastResult = data;
+        displayRows(data);
+        $('message').textContent = '';
+      } catch (error) {
+        $('message').textContent = error.message;
+        if (error.status === 401 || error.status === 409) authenticated = false;
+      } finally {
+        busy = false;
+        $('queryButton').disabled = !authenticated || !$('show').value;
+        refreshStatus();
+      }
+    });
+
+    $('download').addEventListener('click', () => {
+      if (!lastResult) return;
+      const byId = new Map(lastResult.goodsList.map(x => [String(x.goodsId), {goods: x}]));
+      lastResult.failures.forEach(x => byId.set(String(x.goodsId), {failure: x}));
+      const quote = value => '"' + String(value ?? '').replaceAll('"', '""') + '"';
+      const lines = [['商品ID','结果','商品名称','价格(元)','库存','销量(件)','已拼显示','商品图片','提示或失败原因']];
+      for (const id of idsFromInput()) {
+        const item = byId.get(id); if (!item) continue;
+        const g = item.goods, f = item.failure;
+        lines.push([id, f ? '不可添加' : '成功', g?.title || '', g ? (g.price / 100).toFixed(2) : '', g?.stock ?? '', g?.soldQuantity ?? '', g?.soldQuantityTip ?? '', g?.image || '', f?.reason || (g ? warning(g) : '')]);
+      }
+      const csv = '\ufeff' + lines.map(row => row.map(quote).join(',')).join('\r\n');
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
+      link.download = `商品查询_${new Date().toISOString().slice(0,10)}.csv`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    });
+    refreshStatus();
+    setInterval(() => { if (!document.hidden) refreshStatus(); }, 8000);
+  </script>
+</body>
+</html>

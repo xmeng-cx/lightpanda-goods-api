@@ -1,6 +1,6 @@
 # 多多直播商品 API
 
-Python/FastAPI 管理后台与商品查询接口，使用仓库内的 Lightpanda ARM64 二进制运行浏览器。支持商家扫码登录、Cookie 恢复、API Key 管理、可编辑直播场次和商品销量查询。
+Python/FastAPI 管理后台与商品查询接口，使用仓库内的 Lightpanda ARM64 二进制运行浏览器。支持商家扫码登录、Cookie 恢复、API Key 管理、可编辑直播场次和商品销量查询。另附 `web/` 中的 8765 查询页面，通过 8766 API 获取场次和商品结果。
 
 ## 一键安装（Armbian / Debian / Ubuntu ARM64）
 
@@ -10,17 +10,19 @@ Python/FastAPI 管理后台与商品查询接口，使用仓库内的 Lightpanda
 dir=$(mktemp -d) && gh repo clone xmeng-cx/lightpanda-goods-api "$dir/project" && sudo bash "$dir/project/install.sh"
 ```
 
-已克隆仓库时，直接运行 `sudo bash install.sh`。安装脚本会校验随仓库提供的 Lightpanda 二进制，安装 Python 依赖，创建 systemd 服务并验证 IPv4/IPv6 本机访问。重复安装会保留 `/var/lib/lightpanda-goods-api` 内的管理密码、API Key 数据库和商家 Cookie。
+已克隆仓库时，直接运行 `sudo bash install.sh`。安装脚本会校验随仓库提供的 Lightpanda 二进制，安装 Python 依赖，创建 API 与查询页面的 systemd 服务并验证 IPv4/IPv6 本机访问。重复安装会保留 `/var/lib/lightpanda-goods-api` 内的管理密码、API Key 数据库和商家 Cookie。
 
 首次启动后，以 root 查看 `/var/lib/lightpanda-goods-api/bootstrap-password.txt` 获取初始管理密码。首次成功登录后，明文密码文件会被删除；后台密码哈希仍保留。
 
-安装目录：`/opt/lightpanda-goods-api`。后台地址：`http://<服务器IP>:8766/admin`；IPv6 地址需加方括号，例如 `http://[2001:db8::1]:8766/admin`。
+安装目录：`/opt/lightpanda-goods-api` 与 `/opt/lightpanda-goods-web`。查询页面：`http://<服务器IP>:8765/`；后台：`http://<服务器IP>:8766/admin`。IPv6 地址需加方括号，例如 `http://[2001:db8::1]:8765/`。
 
 ## 网络与安全
 
-API 服务在 `::`:8766 上以双栈套接字监听，接受所有 IPv4 和 IPv6 本地接口的连接。安装脚本验证 `127.0.0.1` 和 `::1`。从其他设备或公网访问还取决于系统防火墙、路由器和云安全组是否放行 TCP 8766，以及服务器是否有可路由的 IPv6 地址。Lightpanda CDP 仅供 API 进程使用，新安装时监听 `127.0.0.1:9222`；若服务器已有 `lightpanda.service`，安装脚本保留其现有配置。
+API 服务在 `::`:8766 上、查询页面在 `::`:8765 上以双栈套接字监听。安装脚本验证本机 IPv4 和 IPv6。从其他设备或公网访问还取决于系统防火墙、路由器和云安全组是否放行对应 TCP 端口，以及服务器是否有可路由的 IPv6 地址。Lightpanda CDP 仅供 API 进程使用，新安装时监听 `127.0.0.1:9222`；若服务器已有 `lightpanda.service`，安装脚本保留其现有配置。
 
 当前服务使用 HTTP。公网使用时应配置 HTTPS 反向代理，避免管理密码、Cookie 和 API Key 在链路上明文传输。
+
+8765 页面要求填写 API Key，保存在当前浏览器的 localStorage；8765 服务本身不保存 Key 或商家 Cookie。登录失效时，页面打开 8766 管理后台扫码。旧版 8765 遗留的 Cookie 文件不再被读取。
 
 API Key 明文只在创建时显示一次，数据库仅保存 SHA-256 摘要；管理密码使用 scrypt 哈希。SQLite 数据库和 Cookie 保存于 `/var/lib/lightpanda-goods-api`。
 
@@ -41,7 +43,7 @@ curl -X POST 'http://<服务器IP>:8766/v1/goods/query' \
 ## 服务运维
 
 ```bash
-systemctl status lightpanda.service lightpanda-goods-api.service
+systemctl status lightpanda.service lightpanda-goods-api.service lightpanda-goods-web.service
 journalctl -u lightpanda-goods-api -f
 systemctl restart lightpanda-goods-api
 ss -ltnp | grep 8766

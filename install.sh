@@ -8,6 +8,7 @@ fi
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 INSTALL_DIR=/opt/lightpanda-goods-api
+WEB_DIR=/opt/lightpanda-goods-web
 BINARY=/usr/local/bin/lightpanda
 EXPECTED_SHA256=3a88766911febed49a34d620818f85e29768e0f3a766551bab2bf249ed7998fb
 
@@ -38,11 +39,16 @@ fi
 echo '[2/5] 安装 Lightpanda 与 API 文件'
 id -u lightpanda >/dev/null 2>&1 || useradd --system --home-dir /var/lib/lightpanda --shell /usr/sbin/nologin lightpanda
 id -u lightpanda-api >/dev/null 2>&1 || useradd --system --home-dir /var/lib/lightpanda-goods-api --shell /usr/sbin/nologin lightpanda-api
+id -u lightpanda-web >/dev/null 2>&1 || useradd --system --home-dir "$WEB_DIR" --shell /usr/sbin/nologin lightpanda-web
 install -d -m 0755 "$INSTALL_DIR"
+install -d -m 0755 "$WEB_DIR"
 install -m 0755 "$SCRIPT_DIR/vendor/lightpanda-aarch64-linux" "$BINARY.new"
 mv -f "$BINARY.new" "$BINARY"
 for name in app.py browser.py security.py serve.py index.html requirements.txt README.md; do
   install -m 0644 "$SCRIPT_DIR/$name" "$INSTALL_DIR/$name"
+done
+for name in app.py index.html README.md; do
+  install -m 0644 "$SCRIPT_DIR/web/$name" "$WEB_DIR/$name"
 done
 "$BINARY" version
 
@@ -62,10 +68,13 @@ if [[ ! -e /etc/systemd/system/lightpanda.service ]]; then
   install -m 0644 "$SCRIPT_DIR/lightpanda.service" /etc/systemd/system/lightpanda.service
 fi
 install -m 0644 "$SCRIPT_DIR/lightpanda-goods-api.service" /etc/systemd/system/lightpanda-goods-api.service
+install -m 0644 "$SCRIPT_DIR/web/lightpanda-goods-web.service" /etc/systemd/system/lightpanda-goods-web.service
 systemctl daemon-reload
 systemctl enable --now lightpanda.service
 systemctl enable lightpanda-goods-api.service
+systemctl enable lightpanda-goods-web.service
 systemctl restart lightpanda-goods-api.service
+systemctl restart lightpanda-goods-web.service
 
 echo '[5/5] 验证 IPv4 和 IPv6 本机访问'
 for attempt in {1..20}; do
@@ -78,8 +87,18 @@ done
 curl --noproxy '*' --connect-timeout 3 --max-time 5 -fsS http://127.0.0.1:8766/health
 curl --noproxy '*' --connect-timeout 3 --max-time 5 -g -fsS 'http://[::1]:8766/health'
 echo
-echo '安装完成。管理后台：http://<服务器IPv4>:8766/admin 或 http://[服务器IPv6]:8766/admin'
+for attempt in {1..20}; do
+  if curl --noproxy '*' --connect-timeout 3 --max-time 5 -fsS http://127.0.0.1:8765/health >/dev/null &&
+     curl --noproxy '*' --connect-timeout 3 --max-time 5 -g -fsS 'http://[::1]:8765/health' >/dev/null; then
+    break
+  fi
+  sleep 1
+done
+curl --noproxy '*' --connect-timeout 3 --max-time 5 -fsS http://127.0.0.1:8765/health
+curl --noproxy '*' --connect-timeout 3 --max-time 5 -g -fsS 'http://[::1]:8765/health'
+echo
+echo '安装完成。查询页面：http://<服务器IP>:8765/；管理后台：http://<服务器IP>:8766/admin'
 if [[ -f /var/lib/lightpanda-goods-api/bootstrap-password.txt ]]; then
   echo '首次登录管理密码文件：/var/lib/lightpanda-goods-api/bootstrap-password.txt'
 fi
-echo '如需从公网访问，还需允许防火墙/路由器的 TCP 8766 入站流量。'
+echo '如需从公网访问，还需允许防火墙/路由器的 TCP 8765 和 8766 入站流量。'

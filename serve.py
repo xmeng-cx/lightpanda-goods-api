@@ -2,6 +2,7 @@
 
 import os
 import socket
+import sys
 
 import uvicorn
 
@@ -14,6 +15,7 @@ def main() -> None:
     listener.bind(("::", port))
     listener.listen(socket.SOMAXCONN)
     try:
+        sys.path.insert(0, os.getcwd())
         uvicorn.run("app:app", fd=listener.fileno(), workers=1, proxy_headers=False)
     finally:
         listener.close()

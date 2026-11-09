@@ -1,0 +1,19 @@
+[Unit]
+Description=Pinduoduo goods query web frontend (API client)
+After=network-online.target lightpanda-goods-api.service
+Wants=network-online.target
+Wants=lightpanda-goods-api.service
+
+[Service]
+Type=simple
+User=lightpanda-web
+Group=lightpanda-web
+WorkingDirectory=/opt/lightpanda-goods-web
+Environment=GOODS_API_URL=http://127.0.0.1:8766
+Environment=API_PORT=8765
+ExecStart=/opt/lightpanda-goods-api/.venv/bin/python /opt/lightpanda-goods-api/serve.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
