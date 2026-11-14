@@ -46,7 +46,11 @@ class Browser:
 
     def connect(self) -> None:
         if self.ws is not None:
-            return
+            try:
+                self.ws.ping()
+                return
+            except (OSError, websocket.WebSocketConnectionClosedException):
+                self.close()
         self.ws = websocket.create_connection(CDP_URL, timeout=30, suppress_origin=True)
         try:
             target = self.call("Target.createTarget", {"url": "about:blank"}, browser=True)
@@ -79,19 +83,27 @@ class Browser:
         request: dict[str, Any] = {"id": self.next_id, "method": method, "params": params or {}}
         if not browser and self.session_id:
             request["sessionId"] = self.session_id
-        self.ws.send(json.dumps(request))
+        try:
+            self.ws.send(json.dumps(request))
+        except (OSError, websocket.WebSocketConnectionClosedException) as exc:
+            self.close()
+            raise ConnectionError("Lightpanda 连接已断开") from exc
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
             try:
                 message = json.loads(self.ws.recv())
             except websocket.WebSocketTimeoutException:
                 continue
+            except (OSError, websocket.WebSocketConnectionClosedException) as exc:
+                self.close()
+                raise ConnectionError("Lightpanda 连接已断开") from exc
             self._capture_network_event(message)
             if message.get("id") != request["id"]:
                 continue
             if "error" in message:
                 raise RuntimeError(f"CDP {method}: {message['error']}")
             return message.get("result", {})
+        self.close()
         raise TimeoutError(f"CDP {method} timed out")
 
     def _capture_network_event(self, message: dict) -> None:
@@ -217,6 +229,14 @@ class Browser:
         )
 
     def status(self) -> dict:
+        with self.lock:
+            try:
+                return self._status()
+            except (ConnectionError, TimeoutError):
+                self.close()
+                return self._status()
+
+    def _status(self) -> dict:
         with self.lock:
             self.connect()
             for _ in range(3):
