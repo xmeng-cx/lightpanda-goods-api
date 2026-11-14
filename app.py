@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
@@ -7,6 +8,7 @@ from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
@@ -33,6 +35,14 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="多多直播商品 API", version="1.0.0", lifespan=lifespan)
+web_origins = [origin.strip() for origin in os.environ.get("WEB_ORIGINS", "").split(",") if origin.strip()]
+if web_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=web_origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["X-API-Key", "Content-Type"],
+    )
 browser = Browser()
 key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 INDEX = Path(__file__).with_name("index.html")
@@ -202,6 +212,24 @@ def api_shows() -> dict:
     if not state.get("authenticated"):
         raise HTTPException(status_code=409, detail={"code": "LOGIN_REQUIRED", "adminUrl": "/admin"})
     return {"shows": state.get("shows", [])}
+
+
+@app.get("/v1/merchant/status", dependencies=[Depends(api_key_required)])
+def api_merchant_status() -> dict:
+    """Return merchant login state and a QR image when login is required."""
+    return admin_merchant_status()
+
+
+@app.post("/v1/merchant/login", dependencies=[Depends(api_key_required)])
+def api_merchant_login() -> dict:
+    """Start merchant QR login, or report the current authenticated session."""
+    return admin_merchant_login()
+
+
+@app.post("/v1/merchant/logout", dependencies=[Depends(api_key_required)])
+def api_merchant_logout() -> dict:
+    """Clear the shared merchant session and its cookie backup."""
+    return admin_merchant_logout()
 
 
 @app.get("/v1/goods", dependencies=[Depends(api_key_required)])

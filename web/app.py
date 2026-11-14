@@ -55,13 +55,17 @@ def health() -> dict:
 
 @app.get("/api/status", include_in_schema=False)
 def status(x_api_key: str | None = Header(default=None)) -> dict:
-    try:
-        data = api_call("/v1/shows", x_api_key)
-        return {"authenticated": True, "shows": data.get("shows", [])}
-    except HTTPException as exc:
-        if exc.status_code == 409:
-            return {"authenticated": False, "shows": [], "loginRequired": True}
-        raise
+    return api_call("/v1/merchant/status", x_api_key)
+
+
+@app.post("/api/login", include_in_schema=False)
+def login(x_api_key: str | None = Header(default=None)) -> dict:
+    return api_call("/v1/merchant/login", x_api_key, {})
+
+
+@app.post("/api/logout", include_in_schema=False)
+def logout(x_api_key: str | None = Header(default=None)) -> dict:
+    return api_call("/v1/merchant/logout", x_api_key, {})
 
 
 @app.post("/api/query", include_in_schema=False)

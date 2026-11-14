@@ -22,7 +22,7 @@ API 服务在 `::`:8766 上、查询页面在 `::`:8765 上以双栈套接字监
 
 当前服务使用 HTTP。公网使用时应配置 HTTPS 反向代理，避免管理密码、Cookie 和 API Key 在链路上明文传输。
 
-8765 页面要求填写 API Key，保存在当前浏览器的 localStorage；8765 服务本身不保存 Key 或商家 Cookie。登录失效时，页面打开 8766 管理后台扫码。旧版 8765 遗留的 Cookie 文件不再被读取。
+8765 页面要求填写 API Key，保存在当前浏览器的 localStorage；8765 服务本身不保存 Key 或商家 Cookie。登录失效时，页面通过 API 弹出扫码二维码。旧版 8765 遗留的 Cookie 文件不再被读取。
 
 API Key 明文只在创建时显示一次，数据库仅保存 SHA-256 摘要；管理密码使用 scrypt 哈希。SQLite 数据库和 Cookie 保存于 `/var/lib/lightpanda-goods-api`。
 
@@ -39,6 +39,25 @@ curl -X POST 'http://<服务器IP>:8766/v1/goods/query' \
 ```
 
 可选 `showId`；省略时使用当前第一场可编辑商品的直播。`GET /docs` 提供 OpenAPI 文档，后台也有调用示例、返回字段和错误码说明。查询只检查商品，不执行“确认添加”。登录失效时返回 HTTP 409 `LOGIN_REQUIRED`，可到后台扫码。
+
+## 在自己的 Web 中扫码登录
+
+下列接口均需 `X-API-Key`。商家会话由 8766 服务统一维护，扫码成功后，查询 API 可以直接复用这个会话。
+
+| 接口 | 用途 |
+| --- | --- |
+| `GET /v1/merchant/status` | 返回 `authenticated`、`shows`；未登录时返回 `qrImage`（PNG data URL，页面加载时可能暂为 `null`） |
+| `POST /v1/merchant/login` | 启动或刷新商家扫码流程，返回当前状态和二维码 |
+| `POST /v1/merchant/logout` | 注销共享商家会话，清除服务器保存的 Cookie |
+
+```bash
+curl -H 'X-API-Key: <KEY>' 'http://<服务器IP>:8766/v1/merchant/status'
+curl -X POST -H 'X-API-Key: <KEY>' 'http://<服务器IP>:8766/v1/merchant/login'
+```
+
+未登录时的响应示例：`{"authenticated":false,"qrImage":"data:image/png;base64,..."}`。Web 在商品查询返回 HTTP 409 `LOGIN_REQUIRED` 时显示登录弹窗，调用 `POST /v1/merchant/login`，把响应的 `qrImage` 设置为 `<img>` 的 `src`，每 3–4 秒轮询 `GET /v1/merchant/status`。`authenticated` 变成 `true` 后关闭弹窗，并重试查询。二维码暂为空时继续轮询；用户需要新二维码时再次调用登录接口。登录与注销会影响所有使用这一商家账号的客户端。
+
+仓库的 8765 页面提供了 Web 后端代理调用示例；正式部署自己的 Web 时，建议由后端管理 API Key。若浏览器要直接跨域调用，可在 8766 的 systemd 环境变量设置 `WEB_ORIGINS=https://你的前端域名`（多个域名用逗号分隔），重启服务后允许这些来源的 `X-API-Key` 请求。不要把共享 API Key 写死在公开网页代码里。
 
 ## 服务运维
 
