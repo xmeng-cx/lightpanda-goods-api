@@ -1,9 +1,30 @@
-# 8765 商品查询页面
+# 商品任务台（8765）
 
-`http://<服务器IP>:8765/` 是 8766 API 的网页客户端。用户在页面中填入从 8766 管理后台创建的 API Key，页面将 Key 保存在当前浏览器的 localStorage。8765 服务只转发 `GET /v1/shows` 与 `POST /v1/goods/query`，不连接 Lightpanda、不保存商家 Cookie，也不保存 API Key。
+基于 `http://<服务器IP>:8766` 商品 API 的网页项目。顶部导航提供商品过滤、销量查询、设置及登录操作；左侧创建任务，右侧显示当前批次概览、批次列表和选中批次的详情预览。页面采用简洁的商业后台布局。销量批次按表格展示总数、进度、已出、未出、售罄、未知、出销率和状态。输入区可导入 TXT、去重整理和清空。页面显示商品图片；XLSX 导出不包含图片字段。
 
-当商家登录失效时，页面通过 `GET /v1/merchant/status` 显示后端返回的二维码；扫码成功后自动恢复场次与查询。页面的“刷新二维码”调用 `POST /v1/merchant/login`。结果仍可下载 CSV。
+## 运行
 
-服务使用 `/opt/lightpanda-goods-api/.venv` 和双栈启动器，监听 IPv4 与 IPv6 的 8765 端口。对应 systemd 服务为 `lightpanda-goods-web.service`。
+```bash
+pip install -r requirements.txt
+GOODS_API_URL=http://127.0.0.1:8766 uvicorn app:app --host 127.0.0.1 --port 8765
+```
 
-项目源码已一并放入 `goods-api` 私人仓库的 `web/` 目录，一键安装脚本会同时部署 API 与网页。
+在 `web-service` 目录运行。若 8766 在另一台服务器，先设置 `GOODS_API_URL` 为其地址；Windows PowerShell 可执行 `$env:GOODS_API_URL='http://<服务器IP>:8766'`，再运行 `python -m uvicorn app:app --host 127.0.0.1 --port 8765`。
+
+访问 `http://127.0.0.1:8765/`，在“设置”中填写 API Key。Key、过滤规则和销量查询阈值仅存于当前浏览器的 localStorage。API Key 不写入源码或批次数据库。
+
+顶栏“扫码登录”调用商家二维码登录接口，“退出登录”调用商家注销接口；注销会结束该商家的共享登录会话。
+
+## 数据与口径
+
+- 每次查询创建一个持久批次，保存在 SQLite。默认文件为 `web-service/data/batches.sqlite3`；部署时 systemd 的 `StateDirectory` 会将其放在 `/var/lib/lightpanda-goods-web`。也可以用 `GOODS_WEB_DATA_DIR` 指定目录。
+- 商品过滤规则默认“销量大于 20 或价格大于 500 元”。销量解析接口的“已拼显示” `soldQuantityTip`（包括“已拼”和“已抢”）；价格使用接口 `price`（分）。设置修改后，过滤批次预览按当前规则重新计算。
+- 销量查询与过滤规则无关。默认“已拼显示”数量 > 10 为“已出”，可在设置中调整；保存规则会用新阈值重算已有销量批次的汇总与导出。库存 ≤ 0 优先记为“售罄”，查询失败、商品缺失或无法解析的销量文案记为“未知”；其余商品中销量等于或低于阈值、或为空，记为“未出”。出销率 = 已出 / 总商品数量。
+- 历史批次会自动按 `soldQuantityTip` 重新统计，不再使用 `soldQuantity` 判断销量。商品链接使用 `https://mobile.yangkeduo.com/goods.html?goods_id=<商品ID>`。
+- 每行“查看字段”展示接口返回的完整商品对象。销量 XLSX 参照示例报表：前两行为数量与出销率汇总，第 3 行留空，第 4 行起是序号、商品ID、商品名称、销量、价格、处理状态、商品链接 7 列明细。销量数字只从接口“已拼显示”解析，不使用 `soldQuantity`；不导出图片。商品 ID 按文本写入，长名称换行显示；工作表默认不启用筛选。销量文件命名为“日期-出销率X%-成功N.xlsx”，例如 `2026-11-15-出销率90%-成功400.xlsx`。
+- 两种任务的每个批次都可单独删除，也可一键清空全部批次；删除前会显示确认提示。商品过滤详情可分别复制符合条件、超销、超价商品 ID。
+- 提交任一任务时，输入框会先自动移除含中文的整行，再校验并提交剩余商品 ID；页面显示移除的行数。
+
+## 现有服务器部署
+
+`web-service/` 是开发源目录，发布副本位于 `goods-api/web/`。`goods-api/install.sh` 安装前端、依赖和 systemd 服务；部署后访问 `http://<服务器IP>:8765/`。本地 `data/` 不加入发布副本，服务器批次保存在 `/var/lib/lightpanda-goods-web`。

@@ -1,6 +1,6 @@
 # 多多直播商品 API
 
-Python/FastAPI 管理后台与商品查询接口，安装时按服务器架构下载 Lightpanda。支持商家扫码登录、Cookie 恢复、API Key 管理、可编辑直播场次和商品销量查询。另附 `web/` 中的 8765 查询页面，通过 8766 API 获取场次和商品结果。
+Python/FastAPI 管理后台与商品查询接口，安装时按服务器架构下载 Lightpanda。支持商家扫码登录、Cookie 恢复、API Key 管理、可编辑直播场次和商品销量查询。`web/` 是独立 `web-service` 项目的发布副本，在 8765 提供商品过滤、销量查询、批次保存和 XLSX 导出，通过 8766 API 获取场次和商品结果。
 
 ## 一键安装（Armbian / Debian / Ubuntu，ARM64 或 x86_64）
 
@@ -10,7 +10,7 @@ Python/FastAPI 管理后台与商品查询接口，安装时按服务器架构�
 bash -o pipefail -c 'curl -fsSL https://gh.xmeng.eu.org/https://raw.githubusercontent.com/xmeng-cx/lightpanda-goods-api/main/bootstrap.sh | sudo bash'
 ```
 
-引导脚本检测网络区域，下载项目源码压缩包并调用 `install.sh`：中国大陆网络优先使用 `https://gh.xmeng.eu.org/`，其他地区优先直连 GitHub，失败时自动切换线路。安装脚本检测架构，从 Lightpanda 上游下载固定版本 `1.0.4` 的对应 Linux 二进制，并用固定的 SHA-256 校验。随后安装 Python 依赖，创建 API 与查询页面的 systemd 服务并验证 IPv4/IPv6 本机访问。重复安装会保留 `/var/lib/lightpanda-goods-api` 内的管理密码、API Key 数据库和商家 Cookie。
+引导脚本检测网络区域，下载项目源码压缩包并调用 `install.sh`：中国大陆网络优先使用 `https://gh.xmeng.eu.org/`，其他地区优先直连 GitHub，失败时自动切换线路。安装脚本检测架构，从 Lightpanda 上游下载固定版本 `1.0.4` 的对应 Linux 二进制，并用固定的 SHA-256 校验。随后安装 API 和 8765 网页各自声明的 Python 依赖，创建 systemd 服务并验证 IPv4/IPv6 本机访问。重复安装会保留 `/var/lib/lightpanda-goods-api` 内的管理密码、API Key 数据库和商家 Cookie，以及 `/var/lib/lightpanda-goods-web` 内的批次数据库。
 
 仓库仍为私人仓库时，上述匿名安装命令无法下载项目源码。已下载源码时，可在项目目录运行 `sudo bash install.sh`。
 

@@ -86,13 +86,8 @@ mv -f "$BINARY.new" "$BINARY"
 for name in app.py browser.py security.py serve.py index.html requirements.txt README.md; do
   install -m 0644 "$SCRIPT_DIR/$name" "$INSTALL_DIR/$name"
 done
-for name in app.py index.html README.md; do
+for name in app.py index.html app.js style.css requirements.txt README.md; do
   install -m 0644 "$SCRIPT_DIR/web/$name" "$WEB_DIR/$name"
-done
-for name in app.js style.css; do
-  if [[ -f "$SCRIPT_DIR/web/$name" ]]; then
-    install -m 0644 "$SCRIPT_DIR/web/$name" "$WEB_DIR/$name"
-  fi
 done
 "$BINARY" version
 
@@ -108,10 +103,10 @@ else
   FALLBACK_PYPI=https://pypi.tuna.tsinghua.edu.cn/simple
 fi
 if ! "$INSTALL_DIR/.venv/bin/python" -m pip install --disable-pip-version-check --timeout 15 --retries 1 \
-    -i "$PRIMARY_PYPI" -r "$INSTALL_DIR/requirements.txt"; then
+    -i "$PRIMARY_PYPI" -r "$INSTALL_DIR/requirements.txt" -r "$WEB_DIR/requirements.txt"; then
   echo '首选 PyPI 源下载失败，改用备用源重试。'
   "$INSTALL_DIR/.venv/bin/python" -m pip install --disable-pip-version-check --timeout 15 --retries 2 \
-    -i "$FALLBACK_PYPI" -r "$INSTALL_DIR/requirements.txt"
+    -i "$FALLBACK_PYPI" -r "$INSTALL_DIR/requirements.txt" -r "$WEB_DIR/requirements.txt"
 fi
 
 echo '[5/6] 配置开机自启'

@@ -9,6 +9,9 @@ Type=simple
 User=lightpanda-web
 Group=lightpanda-web
 WorkingDirectory=/opt/lightpanda-goods-web
+StateDirectory=lightpanda-goods-web
+StateDirectoryMode=0700
+UMask=0077
 Environment=GOODS_API_URL=http://127.0.0.1:8766
 Environment=API_PORT=8765
 ExecStart=/opt/lightpanda-goods-api/.venv/bin/python /opt/lightpanda-goods-api/serve.py
