@@ -14,7 +14,8 @@ for command in curl tar mktemp; do
   command -v "$command" >/dev/null || { echo "缺少命令：$command" >&2; exit 1; }
 done
 
-REPO_ARCHIVE=https://github.com/xmeng-cx/lightpanda-goods-api/archive/refs/heads/main.tar.gz
+CACHE_BUST=$(date +%s)
+REPO_ARCHIVE="https://github.com/xmeng-cx/lightpanda-goods-api/archive/refs/heads/main.tar.gz?refresh=$CACHE_BUST"
 PROXY_ARCHIVE="https://gh.xmeng.eu.org/$REPO_ARCHIVE"
 COUNTRY=$(curl -fsS --connect-timeout 3 --max-time 6 \
   https://ipapi.co/country/ 2>/dev/null | tr -d '\r\n' || true)
