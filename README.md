@@ -10,13 +10,23 @@ Python/FastAPI 管理后台与商品查询接口，安装时按服务器架构�
 bash -o pipefail -c 'curl -fsSL https://gh.xmeng.eu.org/https://raw.githubusercontent.com/xmeng-cx/lightpanda-goods-api/main/bootstrap.sh | sudo bash'
 ```
 
+## 一键更新
+
+仓库公开后，在已安装的服务器运行：
+
+```bash
+bash -o pipefail -c 'curl -fsSL https://gh.xmeng.eu.org/https://raw.githubusercontent.com/xmeng-cx/lightpanda-goods-api/main/bootstrap.sh | sudo bash -s -- update'
+```
+
+更新会获取最新项目源码、同步 8766 API 与 8765 页面及依赖，并仅重启有改动的应用服务。已安装的 Lightpanda 在更新模式下继续运行，不重复下载或重启；管理密码、API Key、商家 Cookie 和历史批次保存在 `/var/lib`。需要重新安装浏览器时使用安装命令。
+
 引导脚本检测网络区域，下载项目源码压缩包并调用 `install.sh`：中国大陆网络优先使用 `https://gh.xmeng.eu.org/`，其他地区优先直连 GitHub，失败时自动切换线路。安装脚本检测架构，从 Lightpanda 上游下载固定版本 `1.0.4` 的对应 Linux 二进制，并用固定的 SHA-256 校验。随后安装 API 和 8765 网页各自声明的 Python 依赖，创建 systemd 服务并验证 IPv4/IPv6 本机访问。重复安装会保留 `/var/lib/lightpanda-goods-api` 内的管理密码、API Key 数据库和商家 Cookie，以及 `/var/lib/lightpanda-goods-web` 内的批次数据库。
 
 仓库仍为私人仓库时，上述匿名安装命令无法下载项目源码。已下载源码时，可在项目目录运行 `sudo bash install.sh`。
 
 首次启动后，以 root 查看 `/var/lib/lightpanda-goods-api/bootstrap-password.txt` 获取初始管理密码。首次成功登录后，明文密码文件会被删除；后台密码哈希仍保留。
 
-安装目录：`/opt/lightpanda-goods-api` 与 `/opt/lightpanda-goods-web`。查询页面：`http://<服务器IP>:8765/`；后台：`http://<服务器IP>:8766/admin`。IPv6 地址需加方括号，例如 `http://[2001:db8::1]:8765/`。
+安装目录：`/opt/lightpanda-goods-api` 与 `/opt/lightpanda-goods-web`。安装和更新都会将 `lightpanda.service`、`lightpanda-goods-api.service`、`lightpanda-goods-web.service` 设为开机自启。查询页面：`http://<服务器IP>:8765/`；后台：`http://<服务器IP>:8766/admin`。IPv6 地址需加方括号，例如 `http://[2001:db8::1]:8765/`。
 
 ## 网络与安全
 

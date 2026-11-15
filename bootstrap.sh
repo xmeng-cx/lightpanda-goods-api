@@ -5,6 +5,11 @@ if [[ $(id -u) -ne 0 ]]; then
   echo '请以 root 运行：curl ... | sudo bash' >&2
   exit 1
 fi
+MODE=${1:-install}
+if [[ $# -gt 1 || "$MODE" != install && "$MODE" != update ]]; then
+  echo '用法：bootstrap.sh [install|update]' >&2
+  exit 2
+fi
 for command in curl tar mktemp; do
   command -v "$command" >/dev/null || { echo "缺少命令：$command" >&2; exit 1; }
 done
@@ -40,4 +45,4 @@ if [[ ! -f "$INSTALL_SCRIPT" ]]; then
   echo '安装文件缺失；请确认仓库已公开，且 main 分支包含 install.sh。' >&2
   exit 1
 fi
-bash "$INSTALL_SCRIPT"
+bash "$INSTALL_SCRIPT" "$MODE"
