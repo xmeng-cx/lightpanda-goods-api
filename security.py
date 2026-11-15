@@ -17,6 +17,7 @@ DB_FILE = DATA_DIR / "keys.sqlite3"
 ADMIN_FILE = DATA_DIR / "admin.json"
 BOOTSTRAP_FILE = DATA_DIR / "bootstrap-password.txt"
 SESSION_SECONDS = 12 * 60 * 60
+DEFAULT_ADMIN_PASSWORD = "5201314"
 
 
 def _utc_now() -> str:
@@ -54,11 +55,12 @@ def init_state() -> None:
             );
             """
         )
-    if not ADMIN_FILE.exists():
-        password = secrets.token_urlsafe(18)
+    if not verify_admin_password(DEFAULT_ADMIN_PASSWORD):
         salt = secrets.token_bytes(16)
-        _private_write(ADMIN_FILE, json.dumps({"salt": salt.hex(), "hash": _password_hash(password, salt)}))
-        _private_write(BOOTSTRAP_FILE, password + "\n")
+        _private_write(ADMIN_FILE, json.dumps({"salt": salt.hex(), "hash": _password_hash(DEFAULT_ADMIN_PASSWORD, salt)}))
+        with connect_db() as db:
+            db.execute("DELETE FROM admin_sessions")
+    BOOTSTRAP_FILE.unlink(missing_ok=True)
 
 
 @contextmanager
@@ -94,7 +96,6 @@ def create_admin_session() -> str:
             "INSERT INTO admin_sessions(token_hash, expires_at) VALUES (?, ?)",
             (digest, int(time.time()) + SESSION_SECONDS),
         )
-    BOOTSTRAP_FILE.unlink(missing_ok=True)
     return token
 
 

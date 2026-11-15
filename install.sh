@@ -193,7 +193,5 @@ curl --noproxy '*' --connect-timeout 3 --max-time 5 -fsS http://127.0.0.1:8765/h
 curl --noproxy '*' --connect-timeout 3 --max-time 5 -g -fsS 'http://[::1]:8765/health'
 echo
 echo "${MODE} 完成。查询页面：http://<服务器IP>:8765/；管理后台：http://<服务器IP>:8766/admin"
-if [[ -f /var/lib/lightpanda-goods-api/bootstrap-password.txt ]]; then
-  echo '首次登录管理密码文件：/var/lib/lightpanda-goods-api/bootstrap-password.txt'
-fi
+echo '管理员密码：5201314'
 echo '如需从公网访问，还需允许防火墙/路由器的 TCP 8765 和 8766 入站流量。'

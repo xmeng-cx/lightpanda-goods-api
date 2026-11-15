@@ -24,7 +24,7 @@ bash -o pipefail -c 'curl -fsSL https://gh.xmeng.eu.org/https://raw.githubuserco
 
 仓库仍为私人仓库时，上述匿名安装命令无法下载项目源码。已下载源码时，可在项目目录运行 `sudo bash install.sh`。
 
-首次启动后，以 root 查看 `/var/lib/lightpanda-goods-api/bootstrap-password.txt` 获取初始管理密码。首次成功登录后，明文密码文件会被删除；后台密码哈希仍保留。
+管理员密码固定为 `5201314`。首次安装和一键更新都会确保使用此密码；服务器只保存加盐的密码哈希，不生成明文密码文件。
 
 安装目录：`/opt/lightpanda-goods-api` 与 `/opt/lightpanda-goods-web`。安装和更新都会将 `lightpanda.service`、`lightpanda-goods-api.service`、`lightpanda-goods-web.service` 设为开机自启。查询页面：`http://<服务器IP>:8765/`；后台：`http://<服务器IP>:8766/admin`。IPv6 地址需加方括号，例如 `http://[2001:db8::1]:8765/`。
 
