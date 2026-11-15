@@ -1,3 +1,2 @@
 *.sh text eol=lf
 *.service text eol=lf
-vendor/lightpanda-aarch64-linux binary

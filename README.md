@@ -1,16 +1,18 @@
 # 多多直播商品 API
 
-Python/FastAPI 管理后台与商品查询接口，使用仓库内的 Lightpanda ARM64 二进制运行浏览器。支持商家扫码登录、Cookie 恢复、API Key 管理、可编辑直播场次和商品销量查询。另附 `web/` 中的 8765 查询页面，通过 8766 API 获取场次和商品结果。
+Python/FastAPI 管理后台与商品查询接口，安装时按服务器架构下载 Lightpanda。支持商家扫码登录、Cookie 恢复、API Key 管理、可编辑直播场次和商品销量查询。另附 `web/` 中的 8765 查询页面，通过 8766 API 获取场次和商品结果。
 
-## 一键安装（Armbian / Debian / Ubuntu ARM64）
+## 一键安装（Armbian / Debian / Ubuntu，ARM64 或 x86_64）
 
-要求 Linux ARM64/aarch64、glibc 2.38 或更新版本，以及 `apt-get`。私人仓库无法匿名下载。先在目标服务器安装并登录 GitHub CLI（`gh auth login`），确认该账号有本仓库读取权限，然后运行一行命令：
+要求 Linux ARM64/aarch64 或 x86_64/amd64、glibc 系统以及 `apt-get`。私人仓库无法匿名下载。先在目标服务器安装并登录 GitHub CLI（`gh auth login`），确认该账号有本仓库读取权限，然后运行一行命令：
 
 ```bash
-dir=$(mktemp -d) && gh repo clone xmeng-cx/lightpanda-goods-api "$dir/project" && sudo bash "$dir/project/install.sh"
+dir=$(mktemp -d) && gh repo clone xmeng-cx/lightpanda-goods-api "$dir/project" -- --depth 1 && sudo bash "$dir/project/install.sh"
 ```
 
-已克隆仓库时，直接运行 `sudo bash install.sh`。安装脚本会校验随仓库提供的 Lightpanda 二进制，安装 Python 依赖，创建 API 与查询页面的 systemd 服务并验证 IPv4/IPv6 本机访问。重复安装会保留 `/var/lib/lightpanda-goods-api` 内的管理密码、API Key 数据库和商家 Cookie。
+已克隆仓库时，直接运行 `sudo bash install.sh`。安装脚本检测架构，从 Lightpanda 上游下载固定版本 `1.0.4` 的对应 Linux 二进制，并用固定的 SHA-256 校验。检测到中国大陆网络时，优先从 `https://gh.xmeng.eu.org/https://github.com/...` 下载；其他地区优先直连。首选地址失败时自动尝试另一条线路。随后安装 Python 依赖，创建 API 与查询页面的 systemd 服务并验证 IPv4/IPv6 本机访问。重复安装会保留 `/var/lib/lightpanda-goods-api` 内的管理密码、API Key 数据库和商家 Cookie。
+
+私人仓库的克隆仍通过已登录的 GitHub CLI 直接认证；安装脚本的下载代理只处理公开的 Lightpanda 文件，不传输 GitHub 凭据。若服务器无法克隆私人仓库，可在本机克隆后上传项目目录，再在服务器运行 `sudo bash install.sh`。
 
 首次启动后，以 root 查看 `/var/lib/lightpanda-goods-api/bootstrap-password.txt` 获取初始管理密码。首次成功登录后，明文密码文件会被删除；后台密码哈希仍保留。
 
@@ -70,6 +72,6 @@ ss -ltnp | grep 8766
 
 `API_PORT` 可在 systemd 服务环境变量中调整，改动后运行 `systemctl daemon-reload && systemctl restart lightpanda-goods-api`。
 
-## 随仓库提供的 Lightpanda
+## 安装时下载的 Lightpanda
 
-`vendor/lightpanda-aarch64-linux` 来自 [Lightpanda Browser](https://github.com/lightpanda-io/browser)，版本 `1.1.0-nightly.11647+b8e234a77`，仅供 Linux ARM64/aarch64 使用。SHA-256：`3a88766911febed49a34d620818f85e29768e0f3a766551bab2bf249ed7998fb`。上游使用 AGPL-3.0-only；许可文本与说明在 `vendor/LICENSE.lightpanda`、`vendor/LICENSING.lightpanda.md`。上游源码对应提交：<https://github.com/lightpanda-io/browser/tree/b8e234a77>。
+浏览器来自 [Lightpanda Browser 1.0.4](https://github.com/lightpanda-io/browser/releases/tag/1.0.4)。安装脚本按架构选择 `lightpanda-aarch64-linux` 或 `lightpanda-x86_64-linux`，仓库不保存二进制。对应 SHA-256 分别为 `f021d49a0b66d07bf2633f8e00870b9075293516f872695b0ca4aeb5848b6ea8` 和 `7d22651129901203abdb95c64f49069c49e88f5211f4d8c4c6828c123c4adab4`。上游使用 AGPL-3.0-only；许可文本与说明在 `vendor/LICENSE.lightpanda`、`vendor/LICENSING.lightpanda.md`。

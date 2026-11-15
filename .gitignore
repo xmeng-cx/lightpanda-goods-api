@@ -9,3 +9,4 @@ admin.json
 bootstrap-password.txt
 .env
 *.log
+vendor/lightpanda-*-linux
