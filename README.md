@@ -51,6 +51,7 @@ curl -X POST 'http://<服务器IP>:8766/v1/goods/query' \
 ```
 
 可选 `showId`；省略时使用当前第一场可编辑商品的直播。`GET /docs` 提供 OpenAPI 文档，后台也有调用示例、返回字段和错误码说明。查询只检查商品，不执行“确认添加”。登录失效时返回 HTTP 409 `LOGIN_REQUIRED`，可到后台扫码。
+商品 ID 超过 1000 个时，8766 会自动按每批最多 1000 个顺序查询，并合并商品、失败项与计数；响应的 `batchCount` 表示实际批数。8765 将合并结果保存为一个批次。大量 ID 请使用 `POST /v1/goods/query`，避免 GET URL 过长。
 
 ## 在自己的 Web 中扫码登录
 

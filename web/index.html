@@ -33,7 +33,7 @@
           <div class="section-head"><div><h3><span class="step-number">＋</span>创建过滤任务</h3><p>设置批次信息并输入商品 ID</p></div></div>
           <div class="panel-body">
           <div class="form-grid"><label>批次名称<input id="filterName" maxlength="80" placeholder="例如：11月上新筛选"></label><label>直播场次<select id="filterShow"><option value="">连接后读取场次</option></select></label></div>
-          <label class="field-label">商品 ID <span>每行一个，也支持逗号、空格、分号；最多 1000 个</span><textarea id="filterIds" placeholder="1024677243708&#10;1024614545320"></textarea></label>
+          <label class="field-label">商品 ID <span>每行一个，也支持逗号、空格、分号；超过 1000 个自动分批查询</span><textarea id="filterIds" placeholder="1024677243708&#10;1024614545320"></textarea></label>
           <div class="input-actions"><label class="file-button" for="filterFile">导入 TXT</label><input id="filterFile" type="file" accept=".txt,text/plain" hidden><button class="button subtle" id="filterDedupe">去重整理</button><button class="button subtle" id="filterClear">清空</button></div>
           <div class="input-stats"><div><strong id="filterRawCount">0</strong><span>输入数量</span></div><div><strong id="filterUniqueCount">0</strong><span>去重后</span></div><div><strong id="filterDuplicateCount">0</strong><span>重复数量</span></div></div>
           <div class="rule-chip" id="ruleChip">销量 &gt; 20 或 价格 &gt; ¥500</div>
@@ -62,7 +62,7 @@
           <div class="section-head"><div><h3><span class="step-number">＋</span>创建销量任务</h3><p>设置批次信息并输入商品 ID</p></div></div>
           <div class="panel-body">
           <div class="form-grid"><label>批次名称<input id="salesName" maxlength="80" placeholder="例如：11月14日晚场销量"></label><label>直播场次<select id="salesShow"><option value="">连接后读取场次</option></select></label></div>
-          <label class="field-label">商品 ID <span>每行一个，也支持逗号、空格、分号；最多 1000 个</span><textarea id="salesIds" placeholder="1024677243708&#10;1024614545320"></textarea></label>
+          <label class="field-label">商品 ID <span>每行一个，也支持逗号、空格、分号；超过 1000 个自动分批查询</span><textarea id="salesIds" placeholder="1024677243708&#10;1024614545320"></textarea></label>
           <div class="input-actions"><label class="file-button" for="salesFile">导入 TXT</label><input id="salesFile" type="file" accept=".txt,text/plain" hidden><button class="button subtle" id="salesDedupe">去重整理</button><button class="button subtle" id="salesClear">清空</button></div>
           <div class="input-stats"><div><strong id="salesRawCount">0</strong><span>输入数量</span></div><div><strong id="salesUniqueCount">0</strong><span>去重后</span></div><div><strong id="salesDuplicateCount">0</strong><span>重复数量</span></div></div>
           <div class="form-footer"><span id="salesCount">0 个 ID</span><button class="button primary" id="salesRun">开始销量查询</button></div>

@@ -259,12 +259,12 @@ async function runQuery(type){
   if(!state.key){message(type,'请先在设置中填写 API Key');setPage('settings');return;}
   if(!state.authenticated){message(type,'商家尚未登录，请先扫码登录');$('loginModal').classList.remove('hidden');return;}
   if(!show){message(type,'当前没有可编辑的直播场次');return;}
-  if(!ids.length||ids.length>1000){message(type,`${cleaned}请输入 1 至 1000 个商品 ID`);return;}
+  if(!ids.length){message(type,`${cleaned}请至少输入 1 个商品 ID`);return;}
   const invalid=ids.find(id=>!/^\d{10,20}$/.test(id));if(invalid){message(type,`${cleaned}商品 ID 格式不正确：${invalid}`);return;}
   state.querying=true;state.queryingType=type;setConnection('正在查询…','warn');message(type,`${cleaned}正在请求接口，商品较多时需要稍候…`);if(type==='sales')renderBatchList('sales');
   try {
     const result=await callApi('/api/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goodsIds:ids,showId:show,batchName:$(type+'Name').value.trim(),taskType:type,salesThreshold:type==='sales'?state.salesThreshold:10})});
-    state.queryingType=null;message(type,`${cleaned}查询完成，已保存为${names[type]}批次。`);await loadBatches(type);await openBatch(type,result.batchId);
+    state.queryingType=null;message(type,`${cleaned}查询完成，共处理 ${result.batchCount||1} 批，已保存为${names[type]}批次。`);await loadBatches(type);await openBatch(type,result.batchId);
   } catch(error){message(type,error.message);if(error.status===409){state.authenticated=false;state.modalDismissed=false;$('loginModal').classList.remove('hidden');refreshQr();}if(error.status===401){state.authenticated=false;}}
   finally {state.querying=false;state.queryingType=null;if(type==='sales')renderBatchList('sales');setConnection(state.authenticated?'商家已登录':'请检查连接',state.authenticated?'ok':'warn');}
 }

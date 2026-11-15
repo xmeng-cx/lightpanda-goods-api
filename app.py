@@ -79,8 +79,8 @@ def admin_required(request: Request) -> None:
 def normalize_ids(raw: list[int] | str) -> list[int]:
     if isinstance(raw, str):
         return parse_ids(raw)
-    if not raw or len(raw) > 1000:
-        raise ValueError("请输入 1 至 1000 个商品 ID")
+    if not raw:
+        raise ValueError("请至少输入 1 个商品 ID")
     if any(not isinstance(value, int) or value < 10**9 or value >= 10**20 for value in raw):
         raise ValueError("商品 ID 必须是 10 至 20 位正整数")
     return list(dict.fromkeys(raw))
@@ -89,7 +89,22 @@ def normalize_ids(raw: list[int] | str) -> list[int]:
 def query_goods(raw: list[int] | str, show_id: str | None) -> dict:
     try:
         ids = normalize_ids(raw)
-        result = browser.query(ids, show_id)
+        parts = []
+        selected_show = show_id
+        for offset in range(0, len(ids), 1000):
+            part = browser.query(ids[offset:offset + 1000], selected_show)
+            selected_show = part["showId"]
+            parts.append(part)
+        result = {
+            "showId": selected_show,
+            "requestedCount": len(ids),
+            "successCount": sum(part["successCount"] for part in parts),
+            "failureCount": sum(part["failureCount"] for part in parts),
+            "goodsList": [goods for part in parts for goods in part["goodsList"]],
+            "failures": [failure for part in parts for failure in part["failures"]],
+            "source": parts[0]["source"] if len({part["source"] for part in parts}) == 1 else "mixed",
+            "batchCount": len(parts),
+        }
         for goods in result["goodsList"]:
             if isinstance(goods.get("price"), (int, float)):
                 goods["priceYuan"] = round(goods["price"] / 100, 2)

@@ -167,7 +167,9 @@ def api_call(path: str, key: str | None, payload: dict | None = None,
         headers["Content-Type"] = "application/json"
     upstream = request.Request(api_base_url(api_base) + path, data=data, headers=headers)
     try:
-        with API_OPENER.open(upstream, timeout=300 if path == "/v1/goods/query" else 30) as response:
+        goods_ids = payload.get("goodsIds", []) if payload and path == "/v1/goods/query" else []
+        batch_count = (len(goods_ids) + 999) // 1000 if isinstance(goods_ids, list) else 1
+        with API_OPENER.open(upstream, timeout=max(300, batch_count * 300) if batch_count else 30) as response:
             return json.load(response)
     except error.HTTPError as exc:
         try:

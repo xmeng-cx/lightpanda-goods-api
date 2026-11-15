@@ -442,8 +442,8 @@ def qr_png_data_url(value: str) -> str:
 
 def parse_ids(raw: str) -> list[int]:
     tokens = [part for part in re.split(r"[\s,;，；]+", raw.strip()) if part]
-    if not tokens or len(tokens) > 1000:
-        raise ValueError("请输入 1 至 1000 个商品 ID")
+    if not tokens:
+        raise ValueError("请至少输入 1 个商品 ID")
     if any(not re.fullmatch(r"\d{10,20}", token) for token in tokens):
         raise ValueError("商品 ID 只能包含 10 至 20 位数字，多个 ID 用逗号、空格或换行分隔")
     return list(dict.fromkeys(int(token) for token in tokens))

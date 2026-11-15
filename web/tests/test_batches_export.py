@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import sys
 import tempfile
 import unittest
 from io import BytesIO
@@ -15,6 +16,7 @@ from fastapi import HTTPException
 APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
 spec = importlib.util.spec_from_file_location("goods_web_app", APP_PATH)
 goods_app = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = goods_app
 spec.loader.exec_module(goods_app)
 
 
@@ -110,6 +112,18 @@ class BatchExportTest(unittest.TestCase):
                 goods_app.api_base_url(value)
         self.assertEqual(goods_app.api_base_url("https://EXAMPLE.COM:8766/"), "https://example.com:8766")
         self.assertEqual(goods_app.api_base_url("http://[::1]:8766/"), "http://[::1]:8766")
+
+    def test_two_thousand_ids_are_saved_as_one_web_batch(self):
+        ids = [10**12 + value for value in range(2000)]
+        response = {"showId": "show-1", "goodsList": [], "failures": [], "batchCount": 2}
+        with patch.object(goods_app, "api_call", return_value=response):
+            result = goods_app.query(goods_app.QueryBody(goodsIds=ids, showId="show-1"), x_api_key="test")
+        self.assertEqual(result["batchCount"], 2)
+        self.assertEqual(len(result["requestedGoodsIds"]), 2000)
+        with goods_app.database() as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM batches").fetchone()[0], 3)
+            row = db.execute("SELECT total, unknown FROM batches WHERE id=?", (result["batchId"],)).fetchone()
+        self.assertEqual(tuple(row), (2000, 2000))
 
 
 
