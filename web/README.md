@@ -11,7 +11,7 @@ GOODS_API_URL=http://127.0.0.1:8766 uvicorn app:app --host 127.0.0.1 --port 8765
 
 在 `web-service` 目录运行。若 8766 在另一台服务器，先设置 `GOODS_API_URL` 为其地址；Windows PowerShell 可执行 `$env:GOODS_API_URL='http://<服务器IP>:8766'`，再运行 `python -m uvicorn app:app --host 127.0.0.1 --port 8765`。
 
-访问 `http://127.0.0.1:8765/`，在“设置”中填写 API Key。Key、过滤规则和销量查询阈值仅存于当前浏览器的 localStorage。API Key 不写入源码或批次数据库。
+访问 `http://127.0.0.1:8765/`，在“设置”中填写 API 地址和 API Key。API 地址留空时使用服务器的 `GOODS_API_URL` 默认值；填写后，查询、场次、扫码登录及批次请求都会使用指定 API。地址、Key、过滤规则和销量阈值保存在当前浏览器的 localStorage；批次数据库只记录对应的 API 地址以区分历史，不保存 Key。旧批次归入原服务器默认 API 地址。
 
 顶栏“扫码登录”调用商家二维码登录接口，“退出登录”调用商家注销接口；注销会结束该商家的共享登录会话。
 

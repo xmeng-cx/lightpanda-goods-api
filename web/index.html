@@ -93,7 +93,15 @@
           <div class="rule-builder"><div class="rule-line"><span class="rule-icon">▥</span><div><strong>已出：已拼显示大于</strong><small>等于阈值仍算未出</small></div><div class="number-control"><input id="querySalesThreshold" type="number" min="0" step="1" value="10"><span>件</span></div></div></div>
           <div class="form-footer"><span id="salesSettingsSaved">默认大于 10 件算已出</span><button class="button primary" id="saveSalesSettings">保存销量规则</button></div>
         </section>
-        <section class="panel connection-panel"><div class="section-head"><div><h3>API 连接</h3><p>Key 仅保存在当前浏览器，不写入项目文件或批次数据库。</p></div></div><div class="key-row"><input id="apiKey" type="password" autocomplete="off" placeholder="填写 8766 管理后台创建的 API Key"><button class="button primary" id="saveKey">保存并连接</button><button class="button subtle" id="clearKey">清除</button></div><p class="small-link">需要新 Key？<a id="adminLink" target="_blank" rel="noopener">打开 API 管理后台</a></p><div class="message" id="keyMessage" role="status"></div></section>
+        <section class="panel connection-panel">
+          <div class="section-head"><div><h3>API 连接</h3><p>地址和 Key 保存在当前浏览器；留空地址时使用服务器默认 API。</p></div></div>
+          <div class="connection-fields">
+            <label>API 地址<input id="apiUrl" type="url" inputmode="url" autocomplete="url" placeholder="留空使用服务器默认 API"></label>
+            <label>API Key<input id="apiKey" type="password" autocomplete="off" placeholder="填写 API 管理后台创建的 Key"></label>
+          </div>
+          <div class="key-row"><button class="button primary" id="saveKey">保存并连接</button><button class="button subtle" id="clearKey">清除连接</button></div>
+          <p class="small-link">需要新 Key？<a id="adminLink" target="_blank" rel="noopener">打开 API 管理后台</a></p><div class="message" id="keyMessage" role="status"></div>
+        </section>
       </section>
     </main>
   </div>

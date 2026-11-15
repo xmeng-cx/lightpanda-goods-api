@@ -1,10 +1,11 @@
 const $ = id => document.getElementById(id);
 const keyStore = 'lightpanda_goods_web_api_key';
+const apiUrlStore = 'lightpanda_goods_web_api_url';
 const ruleStore = 'goods_filter_rules_v1';
 const salesRuleStore = 'goods_sales_rule_v1';
 const names = {filter:'商品过滤', sales:'销量查询', settings:'设置'};
 const descriptions = {filter:'按规则筛选商品，查看每个批次的结果。',sales:'基于已拼显示统计销量，按批次查看完整明细。',settings:'管理过滤规则、销量阈值和 API 连接。'};
-const state = {key:localStorage.getItem(keyStore)||'', authenticated:false, statusBusy:false, querying:false, queryingType:null, page:'filter', filterView:'eligible', batches:{filter:[],sales:[]}, detail:{filter:null,sales:null}, rules:{sales:20,price:500}, salesThreshold:10, modalDismissed:false};
+const state = {key:localStorage.getItem(keyStore)||'', apiUrl:localStorage.getItem(apiUrlStore)||'', authenticated:false, statusBusy:false, querying:false, queryingType:null, page:'filter', filterView:'eligible', batches:{filter:[],sales:[]}, detail:{filter:null,sales:null}, rules:{sales:20,price:500}, salesThreshold:10, modalDismissed:false};
 
 function textNode(tag, value, className='') { const e=document.createElement(tag); e.textContent=String(value ?? ''); if(className)e.className=className; return e; }
 function message(type, value) { $(type+'Message').textContent=value||''; }
@@ -22,6 +23,14 @@ function formatPrice(goods) { const raw=goods?.priceYuan ?? (typeof goods?.price
 function numberOrDash(value) { return value===null||value===undefined||value===''?'—':String(value); }
 function localDate(value) { try {return new Date(value).toLocaleString('zh-CN',{hour12:false});}catch{return value||'';} }
 function validLink(value) { try {const u=new URL(value); return ['http:','https:'].includes(u.protocol)?u.href:null;}catch{return null;} }
+function normalizeApiUrl(value) {
+  const raw=value.trim();if(!raw)return '';
+  let url;try{url=new URL(raw);}catch{throw new Error('API 地址格式不正确');}
+  if(!['http:','https:'].includes(url.protocol)||!url.hostname||url.username||url.password||url.pathname!=='/'||url.search||url.hash)throw new Error('API 地址须为 http(s)://主机[:端口]，不能包含路径、参数或账号');
+  return url.origin;
+}
+function defaultApiUrl() {const url=new URL(location.href);url.port='8766';return url.origin;}
+function updateAdminLink() { $('adminLink').href=(state.apiUrl||defaultApiUrl())+'/admin'; }
 function getRules() { try { const saved=JSON.parse(localStorage.getItem(ruleStore)||'{}'); const sales=Number(saved.sales),price=Number(saved.price); if(Number.isInteger(sales)&&sales>=0&&Number.isFinite(price)&&price>=0)return {sales,price}; }catch{} return {sales:20,price:500}; }
 function updateRuleUI() { $('salesThreshold').value=state.rules.sales; $('priceThreshold').value=state.rules.price; $('ruleChip').textContent=`销量 > ${state.rules.sales} 或 价格 > ¥${state.rules.price}`; }
 function getSalesThreshold() { const raw=localStorage.getItem(salesRuleStore);const value=Number(raw); return raw!==null&&Number.isInteger(value)&&value>=0?value:10; }
@@ -46,7 +55,7 @@ function setConnection(label, tone='') {
 }
 async function callApi(path,options={}) {
   if(!state.key)throw new Error('请先在设置中填写 API Key');
-  const response=await fetch(path,{...options,headers:{'X-API-Key':state.key,...options.headers}});
+  const response=await fetch(path,{...options,headers:{'X-API-Key':state.key,...(state.apiUrl?{'X-API-Base-URL':state.apiUrl}:{}),...options.headers}});
   let data;try{data=await response.json();}catch{throw new Error('服务器返回了无法读取的内容');}
   if(!response.ok){const error=new Error(detailMessage(data));error.status=response.status;throw error;}
   return data;
@@ -264,7 +273,7 @@ async function exportXlsx(type){
   const params=new URLSearchParams();
   if(type==='filter'){params.set('view',state.filterView);params.set('filterSales',String(state.rules.sales));params.set('filterPrice',String(state.rules.price));}
   try{
-    const response=await fetch(`/api/batches/${data.batch.id}/export?${params}`,{headers:{'X-API-Key':state.key}});
+    const response=await fetch(`/api/batches/${data.batch.id}/export?${params}`,{headers:{'X-API-Key':state.key,...(state.apiUrl?{'X-API-Base-URL':state.apiUrl}:{})}});
     if(!response.ok){const error=await response.json();throw new Error(detailMessage(error));}
     const blob=await response.blob(),url=URL.createObjectURL(blob),link=document.createElement('a');
     const encodedName=response.headers.get('Content-Disposition')?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
@@ -286,7 +295,8 @@ async function copyFilterIds(view){
 
 function initialize(){
   state.rules=getRules();state.salesThreshold=getSalesThreshold();updateRuleUI();updateSalesRuleUI();$('apiKey').value=state.key;
-  const admin=new URL(location.href);admin.port='8766';admin.pathname='/admin';admin.search='';admin.hash='';$('adminLink').href=admin.href;
+  try{state.apiUrl=normalizeApiUrl(state.apiUrl);}catch{state.apiUrl='';localStorage.removeItem(apiUrlStore);}
+  $('apiUrl').value=state.apiUrl;$('apiUrl').placeholder=`留空使用服务器默认（${defaultApiUrl()}）`;updateAdminLink();
   document.querySelectorAll('.nav-item').forEach(el=>el.onclick=()=>setPage(el.dataset.page));
   $('openConnection').onclick=()=>setPage('settings');
   $('loginAction').onclick=openLogin;
@@ -306,8 +316,8 @@ function initialize(){
   $('copyEligible').onclick=()=>copyFilterIds('eligible');$('copyOverSales').onclick=()=>copyFilterIds('overSales');$('copyOverPrice').onclick=()=>copyFilterIds('overPrice');
   $('saveSettings').onclick=()=>{const sales=Number($('salesThreshold').value),price=Number($('priceThreshold').value);if(!Number.isInteger(sales)||sales<0||!Number.isFinite(price)||price<0){$('settingsSaved').textContent='请输入有效的非负阈值';return;}state.rules={sales,price};localStorage.setItem(ruleStore,JSON.stringify(state.rules));updateRuleUI();$('settingsSaved').textContent='规则已保存';renderDetail('filter');renderOverview('filter');};
   $('saveSalesSettings').onclick=async()=>{const raw=$('querySalesThreshold').value,threshold=Number(raw);if(raw===''||!Number.isInteger(threshold)||threshold<0){$('salesSettingsSaved').textContent='请输入有效的非负整数';return;}state.salesThreshold=threshold;localStorage.setItem(salesRuleStore,String(threshold));updateSalesRuleUI();$('salesSettingsSaved').textContent='正在更新已有销量批次…';try{const result=await syncSalesThreshold();state.detail.sales=null;showWorkspace('sales');await loadBatches('sales');$('salesSettingsSaved').textContent=result?`已保存：销量 > ${threshold} 算已出，已重算 ${result.updated} 个批次`:`已保存：销量 > ${threshold} 算已出；连接 API 后更新已有批次`;}catch(error){$('salesSettingsSaved').textContent=`规则已保存在浏览器；已有批次更新失败：${error.message}`;}};
-  $('saveKey').onclick=async()=>{const key=$('apiKey').value.trim();if(!key){message('key','请填写 API Key');return;}state.key=key;localStorage.setItem(keyStore,key);message('key','');await refreshStatus();await loadBatches('filter');try{await syncSalesThreshold();}catch(error){$('salesSettingsSaved').textContent=`已有销量批次更新失败：${error.message}`;}await loadBatches('sales');};
-  $('clearKey').onclick=()=>{localStorage.removeItem(keyStore);state.key='';state.authenticated=false;$('apiKey').value='';setConnection('未连接');updateShows([]);$('loginModal').classList.add('hidden');for(const type of ['filter','sales']){state.batches[type]=[];state.detail[type]=null;batchPlaceholder(type,'连接 API 后显示批次');showWorkspace(type);renderOverview(type);}message('key','已清除浏览器中的 API Key');};
+  $('saveKey').onclick=async()=>{const key=$('apiKey').value.trim();if(!key){message('key','请填写 API Key');return;}let apiUrl;try{apiUrl=normalizeApiUrl($('apiUrl').value);}catch(error){message('key',error.message);return;}state.key=key;state.apiUrl=apiUrl;localStorage.setItem(keyStore,key);if(apiUrl)localStorage.setItem(apiUrlStore,apiUrl);else localStorage.removeItem(apiUrlStore);updateAdminLink();state.authenticated=false;setConnection('正在连接…','warn');updateShows([]);for(const type of ['filter','sales']){state.batches[type]=[];state.detail[type]=null;batchPlaceholder(type,'正在读取批次…');showWorkspace(type);renderOverview(type);}message('key','');await refreshStatus();await loadBatches('filter');try{await syncSalesThreshold();}catch(error){$('salesSettingsSaved').textContent=`已有销量批次更新失败：${error.message}`;}await loadBatches('sales');};
+  $('clearKey').onclick=()=>{localStorage.removeItem(keyStore);localStorage.removeItem(apiUrlStore);state.key='';state.apiUrl='';state.authenticated=false;$('apiKey').value='';$('apiUrl').value='';updateAdminLink();setConnection('未连接');updateShows([]);$('loginModal').classList.add('hidden');for(const type of ['filter','sales']){state.batches[type]=[];state.detail[type]=null;batchPlaceholder(type,'连接 API 后显示批次');showWorkspace(type);renderOverview(type);}message('key','已清除浏览器中的 API 地址和 Key');};
   $('closeModal').onclick=()=>{state.modalDismissed=true;$('loginModal').classList.add('hidden');};$('refreshQr').onclick=refreshQr;$('checkLogin').onclick=refreshStatus;
   setPage(names[location.hash.slice(1)]?location.hash.slice(1):'filter');
   setConnection(state.key?'正在连接…':'未连接',state.key?'warn':'');

@@ -34,7 +34,7 @@ API 服务在 `::`:8766 上、查询页面在 `::`:8765 上以双栈套接字监
 
 当前服务使用 HTTP。公网使用时应配置 HTTPS 反向代理，避免管理密码、Cookie 和 API Key 在链路上明文传输。
 
-8765 页面要求填写 API Key，保存在当前浏览器的 localStorage；8765 服务本身不保存 Key 或商家 Cookie。登录失效时，页面通过 API 弹出扫码二维码。旧版 8765 遗留的 Cookie 文件不再被读取。
+8765 页面在“设置”中可修改 API 地址与 API Key，均保存在当前浏览器的 localStorage。地址留空时使用服务器的 `GOODS_API_URL` 默认值；保存其他地址后，查询、扫码登录和批次操作会转向该 API，批次历史按 API 地址分别显示。8765 服务本身不保存 Key 或商家 Cookie。登录失效时，页面通过所选 API 弹出扫码二维码。旧版 8765 遗留的 Cookie 文件不再被读取。
 
 API Key 明文只在创建时显示一次，数据库仅保存 SHA-256 摘要；管理密码使用 scrypt 哈希。SQLite 数据库和 Cookie 保存于 `/var/lib/lightpanda-goods-api`。
 

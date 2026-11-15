@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from openpyxl import load_workbook
+from fastapi import HTTPException
 
 
 APP_PATH = Path(__file__).resolve().parents[1] / "app.py"
@@ -37,10 +38,10 @@ class BatchExportTest(unittest.TestCase):
         }
         with goods_app.database() as db:
             for task_type in ("filter", "sales"):
-                db.execute("""INSERT INTO batches (created_at, name, task_type, show_id, total, sold,
+                db.execute("""INSERT INTO batches (created_at, name, task_type, api_base, show_id, total, sold,
                     unsold, sold_out, unknown, sales_threshold, result_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    ("2026-11-14T00:00:00+00:00", "测试批次", task_type, "show-1", 2, 1, 0, 0, 1,
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    ("2026-11-14T00:00:00+00:00", "测试批次", task_type, goods_app.API_BASE, "show-1", 2, 1, 0, 0, 1,
                      10, json.dumps(result, ensure_ascii=False)))
 
     def test_sales_export_keeps_full_product_id_and_summary(self):
@@ -93,6 +94,23 @@ class BatchExportTest(unittest.TestCase):
         self.assertEqual(sheet["B2"].value, 0)
         self.assertEqual(sheet["F5"].value, "未出")
         self.assertEqual(goods_app.batch_detail(1, x_api_key="test")["batch"]["sales_threshold"], 10)
+
+    def test_api_address_separates_batch_history(self):
+        other_api = "https://other.example:8766"
+        self.assertEqual(goods_app.batches("filter", x_api_key="test", x_api_base_url=other_api)["batches"], [])
+        with self.assertRaises(HTTPException) as missing:
+            goods_app.batch_detail(1, x_api_key="test", x_api_base_url=other_api)
+        self.assertEqual(missing.exception.status_code, 404)
+        self.assertEqual(goods_app.clear_batches(x_api_key="test", x_api_base_url=other_api), {"deleted": 0})
+        self.assertEqual(len(goods_app.batches("filter", x_api_key="test")["batches"]), 1)
+
+    def test_api_address_rejects_paths_and_credentials(self):
+        for value in ("file:///tmp/test", "http://user:pass@example.com:8766", "http://example.com:8766/admin"):
+            with self.subTest(value=value), self.assertRaises(HTTPException):
+                goods_app.api_base_url(value)
+        self.assertEqual(goods_app.api_base_url("https://EXAMPLE.COM:8766/"), "https://example.com:8766")
+        self.assertEqual(goods_app.api_base_url("http://[::1]:8766/"), "http://[::1]:8766")
+
 
 
 if __name__ == "__main__":

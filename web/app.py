@@ -10,9 +10,9 @@ from io import BytesIO
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 from urllib import error, request
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from decimal import Decimal, InvalidOperation
 from unicodedata import east_asian_width
 
@@ -28,6 +28,35 @@ INDEX = Path(__file__).with_name("index.html")
 DATA_DIR = Path(os.environ.get("GOODS_WEB_DATA_DIR") or os.environ.get("STATE_DIRECTORY") or INDEX.parent / "data")
 DB_PATH = DATA_DIR / "batches.sqlite3"
 app = FastAPI(title="多多直播商品查询 Web", docs_url=None, redoc_url=None)
+
+
+class NoRedirect(request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+API_OPENER = request.build_opener(NoRedirect)
+
+
+def api_base_url(value: str | None) -> str:
+    if not value or not value.strip():
+        return API_BASE
+    value = value.strip()
+    if len(value) > 256:
+        raise HTTPException(status_code=400, detail="API 地址过长")
+    try:
+        parsed = urlsplit(value)
+        port = parsed.port
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="API 地址格式不正确") from exc
+    if (parsed.scheme not in ("http", "https") or not parsed.hostname or
+            parsed.username or parsed.password or parsed.path not in ("", "/") or
+            parsed.query or parsed.fragment or port == 0):
+        raise HTTPException(status_code=400, detail="API 地址须为 http(s)://主机[:端口]，不能包含路径、参数或账号")
+    host = parsed.hostname
+    if ":" in host:
+        host = f"[{host}]"
+    return f"{parsed.scheme}://{host}{f':{port}' if port is not None else ''}"
 
 
 class QueryBody(BaseModel):
@@ -53,6 +82,7 @@ def database():
             created_at TEXT NOT NULL,
             name TEXT NOT NULL,
             task_type TEXT NOT NULL,
+            api_base TEXT NOT NULL,
             show_id TEXT,
             total INTEGER NOT NULL,
             sold INTEGER NOT NULL,
@@ -68,6 +98,9 @@ def database():
             connection.execute("ALTER TABLE batches ADD COLUMN sales_threshold INTEGER NOT NULL DEFAULT 10")
         if "metric_version" not in columns:
             connection.execute("ALTER TABLE batches ADD COLUMN metric_version INTEGER NOT NULL DEFAULT 1")
+        if "api_base" not in columns:
+            connection.execute("ALTER TABLE batches ADD COLUMN api_base TEXT NOT NULL DEFAULT ''")
+            connection.execute("UPDATE batches SET api_base = ? WHERE api_base = ''", (API_BASE,))
         for row in connection.execute("SELECT id, result_json, sales_threshold FROM batches WHERE metric_version < 2"):
             result = json.loads(row["result_json"])
             totals = counts(result, row["sales_threshold"])
@@ -124,16 +157,17 @@ def batch_row(row: sqlite3.Row) -> dict:
     return {key: row[key] for key in ("id", "created_at", "name", "task_type", "show_id", "total", "sold", "unsold", "sold_out", "unknown", "sales_threshold")}
 
 
-def api_call(path: str, key: str | None, payload: dict | None = None) -> dict:
+def api_call(path: str, key: str | None, payload: dict | None = None,
+             api_base: str | None = None) -> dict:
     if not key:
         raise HTTPException(status_code=401, detail={"code": "INVALID_API_KEY", "message": "请填写 API Key"})
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
     headers = {"X-API-Key": key}
     if data is not None:
         headers["Content-Type"] = "application/json"
-    upstream = request.Request(API_BASE + path, data=data, headers=headers)
+    upstream = request.Request(api_base_url(api_base) + path, data=data, headers=headers)
     try:
-        with request.urlopen(upstream, timeout=300 if path == "/v1/goods/query" else 30) as response:
+        with API_OPENER.open(upstream, timeout=300 if path == "/v1/goods/query" else 30) as response:
             return json.load(response)
     except error.HTTPError as exc:
         try:
@@ -166,24 +200,28 @@ def health() -> dict:
 
 
 @app.get("/api/status", include_in_schema=False)
-def status(x_api_key: str | None = Header(default=None)) -> dict:
-    return api_call("/v1/merchant/status", x_api_key)
+def status(x_api_key: str | None = Header(default=None),
+           x_api_base_url: Annotated[str | None, Header()] = None) -> dict:
+    return api_call("/v1/merchant/status", x_api_key, api_base=x_api_base_url)
 
 
 @app.post("/api/login", include_in_schema=False)
-def login(x_api_key: str | None = Header(default=None)) -> dict:
-    return api_call("/v1/merchant/login", x_api_key, {})
+def login(x_api_key: str | None = Header(default=None),
+          x_api_base_url: Annotated[str | None, Header()] = None) -> dict:
+    return api_call("/v1/merchant/login", x_api_key, {}, x_api_base_url)
 
 
 @app.post("/api/logout", include_in_schema=False)
-def logout(x_api_key: str | None = Header(default=None)) -> dict:
-    return api_call("/v1/merchant/logout", x_api_key, {})
+def logout(x_api_key: str | None = Header(default=None),
+           x_api_base_url: Annotated[str | None, Header()] = None) -> dict:
+    return api_call("/v1/merchant/logout", x_api_key, {}, x_api_base_url)
 
 
 @app.post("/api/query", include_in_schema=False)
-def query(body: QueryBody, x_api_key: str | None = Header(default=None)) -> dict:
+def query(body: QueryBody, x_api_key: str | None = Header(default=None),
+          x_api_base_url: Annotated[str | None, Header()] = None) -> dict:
     payload = body.model_dump(include={"goodsIds", "showId"}, exclude_none=True)
-    result = api_call("/v1/goods/query", x_api_key, payload)
+    result = api_call("/v1/goods/query", x_api_key, payload, x_api_base_url)
     for item in result.get("goodsList", []):
         item["goodsId"] = str(item["goodsId"])
     for item in result.get("failures", []):
@@ -202,9 +240,9 @@ def query(body: QueryBody, x_api_key: str | None = Header(default=None)) -> dict
     name = body.batchName.strip() or datetime.now().strftime("查询批次 %Y-%m-%d %H:%M")
     with database() as db:
         cursor = db.execute(
-            """INSERT INTO batches (created_at, name, task_type, show_id, total, sold, unsold, sold_out, unknown, sales_threshold, result_json)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (created_at, name, body.taskType, result.get("showId"), totals["total"], totals["sold"],
+            """INSERT INTO batches (created_at, name, task_type, api_base, show_id, total, sold, unsold, sold_out, unknown, sales_threshold, result_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (created_at, name, body.taskType, api_base_url(x_api_base_url), result.get("showId"), totals["total"], totals["sold"],
              totals["unsold"], totals["sold_out"], totals["unknown"], body.salesThreshold if body.taskType == "sales" else 10,
              json.dumps(result, ensure_ascii=False)),
         )
@@ -213,20 +251,24 @@ def query(body: QueryBody, x_api_key: str | None = Header(default=None)) -> dict
 
 
 @app.get("/api/batches", include_in_schema=False)
-def batches(taskType: Literal["filter", "sales"], x_api_key: str | None = Header(default=None)) -> dict:
-    api_call("/v1/merchant/status", x_api_key)
+def batches(taskType: Literal["filter", "sales"], x_api_key: str | None = Header(default=None),
+            x_api_base_url: Annotated[str | None, Header()] = None) -> dict:
+    api_call("/v1/merchant/status", x_api_key, api_base=x_api_base_url)
     with database() as db:
         rows = db.execute("""SELECT id, created_at, name, task_type, show_id, total, sold, unsold,
-            sold_out, unknown, sales_threshold FROM batches WHERE task_type = ? ORDER BY id DESC LIMIT 200""", (taskType,)).fetchall()
+            sold_out, unknown, sales_threshold FROM batches WHERE task_type = ? AND api_base = ? ORDER BY id DESC LIMIT 200""",
+            (taskType, api_base_url(x_api_base_url))).fetchall()
     return {"batches": [batch_row(row) for row in rows]}
 
 
 @app.post("/api/sales-threshold", include_in_schema=False)
-def update_sales_threshold(body: SalesThresholdBody, x_api_key: str | None = Header(default=None)) -> dict:
-    api_call("/v1/merchant/status", x_api_key)
+def update_sales_threshold(body: SalesThresholdBody, x_api_key: str | None = Header(default=None),
+                           x_api_base_url: Annotated[str | None, Header()] = None) -> dict:
+    api_call("/v1/merchant/status", x_api_key, api_base=x_api_base_url)
     updated = 0
     with database() as db:
-        rows = db.execute("SELECT id, result_json, sales_threshold FROM batches WHERE task_type = 'sales'").fetchall()
+        rows = db.execute("SELECT id, result_json, sales_threshold FROM batches WHERE task_type = 'sales' AND api_base = ?",
+                          (api_base_url(x_api_base_url),)).fetchall()
         for row in rows:
             if row["sales_threshold"] == body.salesThreshold:
                 continue
@@ -239,30 +281,35 @@ def update_sales_threshold(body: SalesThresholdBody, x_api_key: str | None = Hea
 
 
 @app.get("/api/batches/{batch_id}", include_in_schema=False)
-def batch_detail(batch_id: int, x_api_key: str | None = Header(default=None)) -> dict:
-    api_call("/v1/merchant/status", x_api_key)
+def batch_detail(batch_id: int, x_api_key: str | None = Header(default=None),
+                 x_api_base_url: Annotated[str | None, Header()] = None) -> dict:
+    api_call("/v1/merchant/status", x_api_key, api_base=x_api_base_url)
     with database() as db:
-        row = db.execute("SELECT * FROM batches WHERE id = ?", (batch_id,)).fetchone()
+        row = db.execute("SELECT * FROM batches WHERE id = ? AND api_base = ?",
+                         (batch_id, api_base_url(x_api_base_url))).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="批次不存在")
     return {"batch": batch_row(row), "result": json.loads(row["result_json"])}
 
 
 @app.delete("/api/batches/{batch_id}", include_in_schema=False)
-def delete_batch(batch_id: int, x_api_key: str | None = Header(default=None)) -> dict:
-    api_call("/v1/merchant/status", x_api_key)
+def delete_batch(batch_id: int, x_api_key: str | None = Header(default=None),
+                 x_api_base_url: Annotated[str | None, Header()] = None) -> dict:
+    api_call("/v1/merchant/status", x_api_key, api_base=x_api_base_url)
     with database() as db:
-        deleted = db.execute("DELETE FROM batches WHERE id = ?", (batch_id,)).rowcount
+        deleted = db.execute("DELETE FROM batches WHERE id = ? AND api_base = ?",
+                             (batch_id, api_base_url(x_api_base_url))).rowcount
     if not deleted:
         raise HTTPException(status_code=404, detail="批次不存在")
     return {"deleted": deleted}
 
 
 @app.delete("/api/batches", include_in_schema=False)
-def clear_batches(x_api_key: str | None = Header(default=None)) -> dict:
-    api_call("/v1/merchant/status", x_api_key)
+def clear_batches(x_api_key: str | None = Header(default=None),
+                  x_api_base_url: Annotated[str | None, Header()] = None) -> dict:
+    api_call("/v1/merchant/status", x_api_key, api_base=x_api_base_url)
     with database() as db:
-        deleted = db.execute("DELETE FROM batches").rowcount
+        deleted = db.execute("DELETE FROM batches WHERE api_base = ?", (api_base_url(x_api_base_url),)).rowcount
     return {"deleted": deleted}
 
 
@@ -290,10 +337,11 @@ def export_batch(
     filterSales: int = 20,
     filterPrice: float = 500,
     x_api_key: str | None = Header(default=None),
+    x_api_base_url: Annotated[str | None, Header()] = None,
 ) -> Response:
     if filterSales < 0 or filterPrice < 0:
         raise HTTPException(status_code=422, detail="过滤规则不能为负数")
-    data = batch_detail(batch_id, x_api_key)
+    data = batch_detail(batch_id, x_api_key, x_api_base_url)
     batch, result = data["batch"], data["result"]
     goods = {str(item.get("goodsId")): item for item in result.get("goodsList", [])}
     failures = {str(item.get("goodsId")): item for item in result.get("failures", [])}
