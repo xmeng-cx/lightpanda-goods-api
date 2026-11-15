@@ -75,11 +75,11 @@
       <section class="card" id="apiDocs">
         <div class="docs-intro"><div><h2>API 文档</h2><p>认证、接口参数、返回字段与调用示例。完整机器可读定义见 <a href="/docs" target="_blank" rel="noopener">OpenAPI 文档 ↗</a></p></div><span class="badge ok">API v1</span></div>
         <nav class="docs-nav" aria-label="文档目录"><a href="#doc-start">开始使用</a><a href="#doc-merchant">扫码登录</a><a href="#doc-shows">直播场次</a><a href="#doc-get">GET 查询</a><a href="#doc-post">POST 批量</a><a href="#doc-result">返回结果</a><a href="#doc-errors">错误处理</a></nav>
-        <div class="endpoint" id="doc-merchant"><h3>商家扫码登录 API</h3><p>独立 Web 可以用 API Key 调用以下接口，登录状态和二维码由同一台服务器上的浏览器维护。</p><table class="doc-table"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody><tr><td><code>GET /v1/merchant/status</code></td><td>获取 <code>authenticated</code>、场次和未登录时的 <code>qrImage</code></td></tr><tr><td><code>POST /v1/merchant/login</code></td><td>启动或刷新扫码登录</td></tr><tr><td><code>POST /v1/merchant/logout</code></td><td>注销共享商家会话</td></tr></tbody></table><div class="code-head"><span>curl</span><button type="button" data-copy="exampleMerchant">复制</button></div><pre id="exampleMerchant">curl -H 'X-API-Key: 你的Key' 'http://192.168.1.144:8766/v1/merchant/status'
-curl -X POST -H 'X-API-Key: 你的Key' 'http://192.168.1.144:8766/v1/merchant/login'</pre><p>未登录时响应中的 <code>qrImage</code> 为 <code>data:image/png;base64,...</code>，可直接设为图片的 <code>src</code>。二维码尚未生成时该字段可能为 <code>null</code>，继续轮询即可。商品查询返回 409 时弹出扫码窗口，轮询状态直到 <code>authenticated: true</code>，随后关闭窗口并重试查询。</p><div class="doc-note">API Key 请放在自己的 Web 后端；公开网页代码中不要写入共享 Key。跨域浏览器调用可配置服务环境变量 <code>WEB_ORIGINS</code>。</div></div>
-        <div class="endpoint" id="doc-start"><h3>开始使用</h3><p>先在上方创建 API Key，并确保商家已扫码登录。每个 API 请求都需要带 <code>X-API-Key</code> 请求头；服务地址为 <code>http://192.168.1.144:8766</code>。</p><div class="doc-note">浏览器地址栏无法设置自定义请求头。请使用 Python、curl 或支持添加请求头的 API 工具调用。</div><h3>Python 完整示例</h3><div class="code-head"><span>python · requests</span><button type="button" data-copy="examplePython">复制</button></div><pre id="examplePython">import requests
+        <div class="endpoint" id="doc-merchant"><h3>商家扫码登录 API</h3><p>独立 Web 可以用 API Key 调用以下接口，登录状态和二维码由同一台服务器上的浏览器维护。</p><table class="doc-table"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody><tr><td><code>GET /v1/merchant/status</code></td><td>获取 <code>authenticated</code>、场次和未登录时的 <code>qrImage</code></td></tr><tr><td><code>POST /v1/merchant/login</code></td><td>启动或刷新扫码登录</td></tr><tr><td><code>POST /v1/merchant/logout</code></td><td>注销共享商家会话</td></tr></tbody></table><div class="code-head"><span>curl</span><button type="button" data-copy="exampleMerchant">复制</button></div><pre id="exampleMerchant">curl -H 'X-API-Key: 你的Key' 'http://localhost:8766/v1/merchant/status'
+curl -X POST -H 'X-API-Key: 你的Key' 'http://localhost:8766/v1/merchant/login'</pre><p>未登录时响应中的 <code>qrImage</code> 为 <code>data:image/png;base64,...</code>，可直接设为图片的 <code>src</code>。二维码尚未生成时该字段可能为 <code>null</code>，继续轮询即可。商品查询返回 409 时弹出扫码窗口，轮询状态直到 <code>authenticated: true</code>，随后关闭窗口并重试查询。</p><div class="doc-note">API Key 请放在自己的 Web 后端；公开网页代码中不要写入共享 Key。跨域浏览器调用可配置服务环境变量 <code>WEB_ORIGINS</code>。</div></div>
+        <div class="endpoint" id="doc-start"><h3>开始使用</h3><p>先在上方创建 API Key，并确保商家已扫码登录。每个 API 请求都需要带 <code>X-API-Key</code> 请求头；服务地址为 <code>http://localhost:8766</code>。</p><div class="doc-note">浏览器地址栏无法设置自定义请求头。请使用 Python、curl 或支持添加请求头的 API 工具调用。</div><h3>Python 完整示例</h3><div class="code-head"><span>python · requests</span><button type="button" data-copy="examplePython">复制</button></div><pre id="examplePython">import requests
 
-base_url = "http://192.168.1.144:8766"
+base_url = "http://localhost:8766"
 headers = {"X-API-Key": "替换为后台创建的Key"}
 
 response = requests.get(
@@ -93,10 +93,10 @@ result = response.json()
 for goods in result["goodsList"]:
     print(goods["goodsId"], goods["soldQuantity"], goods["soldQuantityTip"])</pre></div>
         <div class="endpoint" id="doc-shows"><h3><span class="method">GET</span><span class="api-path">/v1/shows</span></h3><p>获取当前账号可添加商品的直播场次。查询商品可传其中的 <code>showId</code>；省略时默认使用第一场。</p><div class="code-head"><span>curl</span><button type="button" data-copy="exampleShows">复制</button></div><pre id="exampleShows">curl -H 'X-API-Key: 你的Key' \
-  'http://192.168.1.144:8766/v1/shows'</pre><div class="code-head"><span>响应示例</span><button type="button" data-copy="responseShows">复制</button></div><pre id="responseShows">{"shows":[{"showId":"20261105_1080238172_01","title":"直播场次标题","time":"11/05 17:09"}]}</pre></div>
+  'http://localhost:8766/v1/shows'</pre><div class="code-head"><span>响应示例</span><button type="button" data-copy="responseShows">复制</button></div><pre id="responseShows">{"shows":[{"showId":"20261105_1080238172_01","title":"直播场次标题","time":"11/05 17:09"}]}</pre></div>
         <div class="endpoint" id="doc-get"><h3><span class="method">GET</span><span class="api-path">/v1/goods</span></h3><p>按商品 ID 查询。<code>ids</code> 必填，可传一个或多个 10–20 位商品 ID；多个 ID 用逗号分隔。<code>showId</code> 可选。</p><table class="doc-table"><thead><tr><th>查询参数</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>ids</code></td><td>是</td><td>1–1000 个商品 ID，例如 <code>1024677243708,1024614545320</code></td></tr><tr><td><code>showId</code></td><td>否</td><td>指定当前可编辑场次；省略时使用第一场</td></tr></tbody></table><div class="code-head"><span>curl</span><button type="button" data-copy="exampleGet">复制</button></div><pre id="exampleGet">curl -H 'X-API-Key: 你的Key' \
-  'http://192.168.1.144:8766/v1/goods?ids=1024677243708,1024614545320'</pre></div>
-        <div class="endpoint" id="doc-post"><h3><span class="method post">POST</span><span class="api-path">/v1/goods/query</span></h3><p>批量查询商品。请求体为 JSON；<code>goodsIds</code> 必填，可以是 ID 数组或以逗号、空格、换行分隔的字符串。<code>showId</code> 可选。</p><div class="code-head"><span>curl · application/json</span><button type="button" data-copy="examplePost">复制</button></div><pre id="examplePost">curl -X POST 'http://192.168.1.144:8766/v1/goods/query' \
+  'http://localhost:8766/v1/goods?ids=1024677243708,1024614545320'</pre></div>
+        <div class="endpoint" id="doc-post"><h3><span class="method post">POST</span><span class="api-path">/v1/goods/query</span></h3><p>批量查询商品。请求体为 JSON；<code>goodsIds</code> 必填，可以是 ID 数组或以逗号、空格、换行分隔的字符串。<code>showId</code> 可选。</p><div class="code-head"><span>curl · application/json</span><button type="button" data-copy="examplePost">复制</button></div><pre id="examplePost">curl -X POST 'http://localhost:8766/v1/goods/query' \
   -H 'X-API-Key: 你的Key' \
   -H 'Content-Type: application/json' \
   -d '{"goodsIds":[1024677243708,1024614545320]}'</pre><p>指定直播场次时，在 JSON 中加入 <code>"showId":"从 /v1/shows 获取的场次 ID"</code>。接口只检查商品信息，不执行确认添加。</p></div>
@@ -125,7 +125,7 @@ for goods in result["goodsList"]:
     const $ = id => document.getElementById(id);
     let adminReady = false, merchantBusy = false, queryBusy = false, lastKey = '';
     const docsWalker = document.createTreeWalker($('apiDocs'), NodeFilter.SHOW_TEXT);
-    while (docsWalker.nextNode()) docsWalker.currentNode.nodeValue = docsWalker.currentNode.nodeValue.replaceAll('http://192.168.1.144:8766', location.origin);
+    while (docsWalker.nextNode()) docsWalker.currentNode.nodeValue = docsWalker.currentNode.nodeValue.replaceAll('http://localhost:8766', location.origin);
     document.querySelectorAll('[data-copy]').forEach(button => button.onclick = async () => {
       const value = $(button.dataset.copy).textContent;
       try { await navigator.clipboard.writeText(value); }

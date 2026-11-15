@@ -4,15 +4,15 @@ Python/FastAPI 管理后台与商品查询接口，安装时按服务器架构�
 
 ## 一键安装（Armbian / Debian / Ubuntu，ARM64 或 x86_64）
 
-要求 Linux ARM64/aarch64 或 x86_64/amd64、glibc 系统以及 `apt-get`。私人仓库无法匿名下载。先在目标服务器安装并登录 GitHub CLI（`gh auth login`），确认该账号有本仓库读取权限，然后运行一行命令：
+要求 Linux ARM64/aarch64 或 x86_64/amd64、glibc 系统，以及 `curl`、`tar`、`apt-get`。将仓库设为公开后，在目标服务器运行一行命令；无需 GitHub CLI 或登录 GitHub：
 
 ```bash
-dir=$(mktemp -d) && gh repo clone xmeng-cx/lightpanda-goods-api "$dir/project" -- --depth 1 && sudo bash "$dir/project/install.sh"
+bash -o pipefail -c 'curl -fsSL https://gh.xmeng.eu.org/https://raw.githubusercontent.com/xmeng-cx/lightpanda-goods-api/main/bootstrap.sh | sudo bash'
 ```
 
-已克隆仓库时，直接运行 `sudo bash install.sh`。安装脚本检测架构，从 Lightpanda 上游下载固定版本 `1.0.4` 的对应 Linux 二进制，并用固定的 SHA-256 校验。检测到中国大陆网络时，优先从 `https://gh.xmeng.eu.org/https://github.com/...` 下载；其他地区优先直连。首选地址失败时自动尝试另一条线路。随后安装 Python 依赖，创建 API 与查询页面的 systemd 服务并验证 IPv4/IPv6 本机访问。重复安装会保留 `/var/lib/lightpanda-goods-api` 内的管理密码、API Key 数据库和商家 Cookie。
+引导脚本检测网络区域，下载项目源码压缩包并调用 `install.sh`：中国大陆网络优先使用 `https://gh.xmeng.eu.org/`，其他地区优先直连 GitHub，失败时自动切换线路。安装脚本检测架构，从 Lightpanda 上游下载固定版本 `1.0.4` 的对应 Linux 二进制，并用固定的 SHA-256 校验。随后安装 Python 依赖，创建 API 与查询页面的 systemd 服务并验证 IPv4/IPv6 本机访问。重复安装会保留 `/var/lib/lightpanda-goods-api` 内的管理密码、API Key 数据库和商家 Cookie。
 
-私人仓库的克隆仍通过已登录的 GitHub CLI 直接认证；安装脚本的下载代理只处理公开的 Lightpanda 文件，不传输 GitHub 凭据。若服务器无法克隆私人仓库，可在本机克隆后上传项目目录，再在服务器运行 `sudo bash install.sh`。
+仓库仍为私人仓库时，上述匿名安装命令无法下载项目源码。已下载源码时，可在项目目录运行 `sudo bash install.sh`。
 
 首次启动后，以 root 查看 `/var/lib/lightpanda-goods-api/bootstrap-password.txt` 获取初始管理密码。首次成功登录后，明文密码文件会被删除；后台密码哈希仍保留。
 
