@@ -94,12 +94,12 @@ for goods in result["goodsList"]:
     print(goods["goodsId"], goods["soldQuantity"], goods["soldQuantityTip"])</pre></div>
         <div class="endpoint" id="doc-shows"><h3><span class="method">GET</span><span class="api-path">/v1/shows</span></h3><p>获取当前账号可添加商品的直播场次。查询商品可传其中的 <code>showId</code>；省略时默认使用第一场。</p><div class="code-head"><span>curl</span><button type="button" data-copy="exampleShows">复制</button></div><pre id="exampleShows">curl -H 'X-API-Key: 你的Key' \
   'http://localhost:8766/v1/shows'</pre><div class="code-head"><span>响应示例</span><button type="button" data-copy="responseShows">复制</button></div><pre id="responseShows">{"shows":[{"showId":"20261105_1080238172_01","title":"直播场次标题","time":"11/05 17:09"}]}</pre></div>
-        <div class="endpoint" id="doc-get"><h3><span class="method">GET</span><span class="api-path">/v1/goods</span></h3><p>按商品 ID 查询。<code>ids</code> 必填，可传一个或多个 10–20 位商品 ID；多个 ID 用逗号分隔。<code>showId</code> 可选。</p><table class="doc-table"><thead><tr><th>查询参数</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>ids</code></td><td>是</td><td>商品 ID 自动按每批最多 1000 个查询，例如 <code>1024677243708,1024614545320</code></td></tr><tr><td><code>showId</code></td><td>否</td><td>指定当前可编辑场次；省略时使用第一场</td></tr></tbody></table><div class="code-head"><span>curl</span><button type="button" data-copy="exampleGet">复制</button></div><pre id="exampleGet">curl -H 'X-API-Key: 你的Key' \
+        <div class="endpoint" id="doc-get"><h3><span class="method">GET</span><span class="api-path">/v1/goods</span></h3><p>按商品 ID 查询。<code>ids</code> 必填，可传一个或多个 10–20 位商品 ID；多个 ID 用逗号分隔。<code>showId</code> 可选。</p><table class="doc-table"><thead><tr><th>查询参数</th><th>必填</th><th>说明</th></tr></thead><tbody><tr><td><code>ids</code></td><td>是</td><td>商品 ID 自动按每批最多 800 个查询，例如 <code>1024677243708,1024614545320</code></td></tr><tr><td><code>showId</code></td><td>否</td><td>指定当前可编辑场次；省略时使用第一场</td></tr></tbody></table><div class="code-head"><span>curl</span><button type="button" data-copy="exampleGet">复制</button></div><pre id="exampleGet">curl -H 'X-API-Key: 你的Key' \
   'http://localhost:8766/v1/goods?ids=1024677243708,1024614545320'</pre></div>
         <div class="endpoint" id="doc-post"><h3><span class="method post">POST</span><span class="api-path">/v1/goods/query</span></h3><p>批量查询商品。请求体为 JSON；<code>goodsIds</code> 必填，可以是 ID 数组或以逗号、空格、换行分隔的字符串。<code>showId</code> 可选。</p><div class="code-head"><span>curl · application/json</span><button type="button" data-copy="examplePost">复制</button></div><pre id="examplePost">curl -X POST 'http://localhost:8766/v1/goods/query' \
   -H 'X-API-Key: 你的Key' \
   -H 'Content-Type: application/json' \
-  -d '{"goodsIds":[1024677243708,1024614545320]}'</pre><p>指定直播场次时，在 JSON 中加入 <code>"showId":"从 /v1/shows 获取的场次 ID"</code>。超过 1000 个 ID 时自动分批查询，合并为一次响应；接口只检查商品信息，不执行确认添加。</p></div>
+  -d '{"goodsIds":[1024677243708,1024614545320]}'</pre><p>指定直播场次时，在 JSON 中加入 <code>"showId":"从 /v1/shows 获取的场次 ID"</code>。超过 800 个 ID 时自动分批查询，合并为一次响应；接口只检查商品信息，不执行确认添加。</p></div>
         <div class="endpoint" id="doc-result"><h3>返回结果与字段</h3><p>成功时返回 HTTP 200。个别商品无法添加时，原因会出现在 <code>failures</code> 中。</p><div class="code-head"><span>示例响应 · 商品对象已精简</span><button type="button" data-copy="responseGoods">复制</button></div><pre id="responseGoods">{
   "showId": "20261105_1080238172_01",
   "requestedCount": 1,
@@ -117,7 +117,7 @@ for goods in result["goodsList"]:
   }],
   "failures": [],
   "source": "browser"
-}</pre><table class="doc-table"><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>price</code> / <code>priceYuan</code></td><td>价格，分别以分 / 元表示</td></tr><tr><td><code>soldQuantity</code></td><td>平台返回的销量数值</td></tr><tr><td><code>soldQuantityTip</code></td><td>平台返回的“已拼”显示文本，与销量分别展示</td></tr><tr><td><code>failures</code></td><td>未成功的商品 ID 和原因</td></tr><tr><td><code>batchCount</code></td><td>实际拆分的查询批数，每批最多 1000 个 ID</td></tr><tr><td><code>source</code></td><td><code>direct</code> 直接请求；<code>browser</code> 浏览器页面流程；<code>mixed</code> 多批使用了不同方式</td></tr></tbody></table></div>
+}</pre><table class="doc-table"><thead><tr><th>字段</th><th>说明</th></tr></thead><tbody><tr><td><code>price</code> / <code>priceYuan</code></td><td>价格，分别以分 / 元表示</td></tr><tr><td><code>soldQuantity</code></td><td>平台返回的销量数值</td></tr><tr><td><code>soldQuantityTip</code></td><td>平台返回的“已拼”显示文本，与销量分别展示</td></tr><tr><td><code>failures</code></td><td>未成功的商品 ID 和原因</td></tr><tr><td><code>batchCount</code></td><td>实际拆分的查询批数，每批最多 800 个 ID</td></tr><tr><td><code>source</code></td><td><code>browser</code> 浏览器页面查询（所有批次均采用此方式）</td></tr></tbody></table></div>
         <div class="endpoint" id="doc-errors"><h3>错误处理</h3><table class="doc-table"><thead><tr><th>状态码</th><th>含义</th><th>处理方式</th></tr></thead><tbody><tr><td>400</td><td>ID 或场次参数不合法</td><td>检查格式、数量、场次</td></tr><tr><td>401</td><td>API Key 无效或已撤销</td><td>检查请求头或新建 Key</td></tr><tr><td>409</td><td>商家登录失效</td><td>在本后台扫码登录后重试</td></tr><tr><td>422</td><td>请求体格式错误</td><td>检查 JSON 与必填字段</td></tr><tr><td>503</td><td>浏览器或上游页面暂不可用</td><td>稍后重试，检查后台状态</td></tr></tbody></table><div class="code-head"><span>登录失效示例 · HTTP 409</span><button type="button" data-copy="responseError">复制</button></div><pre id="responseError">{"detail":{"code":"LOGIN_REQUIRED","message":"商家登录已失效，请在管理后台扫码","adminUrl":"/admin"}}</pre></div>
       </section>
     </div>
@@ -217,7 +217,7 @@ for goods in result["goodsList"]:
       queryBusy=true;$('query').disabled=true;$('queryError').textContent='';$('queryHint').textContent='正在查询…';
       try {
         const data=await request('/admin/api/goods/query',jsonOptions({goodsIds:$('ids').value,showId:$('show').value}));
-        $('querySummary').textContent=`查询 ${data.requestedCount} 个，成功 ${data.successCount} 个，不可添加 ${data.failureCount} 个 · ${data.source==='direct'?'直接 POST':'浏览器页面检查'}`;
+        $('querySummary').textContent=`查询 ${data.requestedCount} 个，成功 ${data.successCount} 个，不可添加 ${data.failureCount} 个 · 浏览器页面检查`;
         const byId=new Map(data.goodsList.map(g=>[String(g.goodsId),{goods:g}]));
         data.failures.forEach(f=>byId.set(String(f.goodsId),{failure:f}));
         $('goodsRows').replaceChildren();

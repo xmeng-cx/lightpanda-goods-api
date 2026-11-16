@@ -91,8 +91,8 @@ def query_goods(raw: list[int] | str, show_id: str | None) -> dict:
         ids = normalize_ids(raw)
         parts = []
         selected_show = show_id
-        for offset in range(0, len(ids), 1000):
-            part = browser.query(ids[offset:offset + 1000], selected_show)
+        for offset in range(0, len(ids), 800):
+            part = browser.query(ids[offset:offset + 800], selected_show)
             selected_show = part["showId"]
             parts.append(part)
         result = {
@@ -102,7 +102,7 @@ def query_goods(raw: list[int] | str, show_id: str | None) -> dict:
             "failureCount": sum(part["failureCount"] for part in parts),
             "goodsList": [goods for part in parts for goods in part["goodsList"]],
             "failures": [failure for part in parts for failure in part["failures"]],
-            "source": parts[0]["source"] if len({part["source"] for part in parts}) == 1 else "mixed",
+            "source": "browser",
             "batchCount": len(parts),
         }
         for goods in result["goodsList"]:

@@ -9,8 +9,6 @@ import threading
 import time
 from typing import Any
 from urllib.parse import urlparse
-from urllib import error as url_error
-from urllib import request as url_request
 from pathlib import Path
 
 import qrcode
@@ -22,7 +20,6 @@ import websocket
 
 CDP_URL = "ws://127.0.0.1:9222/"
 RECORD_URL = "https://live.pinduoduo.com/n-creator/live/live-record"
-CHECK_URL = "https://live.pinduoduo.com/sprite/obs/show/checkGoods"
 COOKIE_FILE = Path("/var/lib/lightpanda-goods-api/cookies.json")
 
 
@@ -38,11 +35,7 @@ class Browser:
         self.session_id: str | None = None
         self.next_id = 0
         self.last_shows: list[dict] = []
-        self.anti_content: str | None = None
-        self.anti_request_ids: set[str] = set()
         self.cookie_snapshot: str | None = None
-        self.direct_failures = 0
-        self.user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
     def connect(self) -> None:
         if self.ws is not None:
@@ -97,7 +90,6 @@ class Browser:
             except (OSError, websocket.WebSocketConnectionClosedException) as exc:
                 self.close()
                 raise ConnectionError("Lightpanda 连接已断开") from exc
-            self._capture_network_event(message)
             if message.get("id") != request["id"]:
                 continue
             if "error" in message:
@@ -105,23 +97,6 @@ class Browser:
             return message.get("result", {})
         self.close()
         raise TimeoutError(f"CDP {method} timed out")
-
-    def _capture_network_event(self, message: dict) -> None:
-        params = message.get("params") or {}
-        if message.get("method") == "Network.requestWillBeSent":
-            request = params.get("request") or {}
-            if "checkGoods" in request.get("url", ""):
-                self.anti_request_ids.add(params.get("requestId", ""))
-                self._capture_anti(request.get("headers") or {})
-        elif message.get("method") == "Network.requestWillBeSentExtraInfo":
-            if params.get("requestId") in self.anti_request_ids:
-                self._capture_anti(params.get("headers") or {})
-
-    def _capture_anti(self, headers: dict) -> None:
-        for key, value in headers.items():
-            if key.lower() == "anti-content" and value:
-                self.anti_content = value
-                self.direct_failures = 0
 
     def _restore_cookies(self) -> None:
         if not COOKIE_FILE.exists():
@@ -150,51 +125,6 @@ class Browser:
             if temp.exists():
                 temp.unlink()
         self.cookie_snapshot = content
-
-    def _direct_query(self, goods_ids: list[int], show_id: str) -> dict | None:
-        if not self.anti_content or self.direct_failures >= 2:
-            return None
-        cookies = self.call("Network.getAllCookies").get("cookies", [])
-        host = "live.pinduoduo.com"
-        eligible = []
-        for cookie in cookies:
-            domain = cookie.get("domain", "").lstrip(".")
-            if host == domain or host.endswith("." + domain):
-                eligible.append(cookie)
-        cookie_header = "; ".join(f"{item['name']}={item['value']}" for item in eligible)
-        payload = {"goodsIds": goods_ids, "filters": [], "goodsProperties": [], "showId": show_id}
-        request = url_request.Request(
-            CHECK_URL,
-            json.dumps(payload, separators=(",", ":")).encode(),
-            {
-                "User-Agent": self.user_agent,
-                "Content-Type": "application/json",
-                "Origin": "https://live.pinduoduo.com",
-                "Referer": RECORD_URL,
-                "Cookie": cookie_header,
-                "anti-content": self.anti_content,
-            },
-        )
-        try:
-            with url_request.urlopen(request, timeout=15) as response:
-                data = json.load(response)
-        except (url_error.HTTPError, url_error.URLError, ValueError):
-            self.direct_failures += 1
-            return None
-        result = data.get("result") or {}
-        goods = result.get("goodsList") or []
-        if data.get("success") and len(goods) == len(goods_ids) and not result.get("failureCount"):
-            return {
-                "showId": show_id,
-                "requestedCount": len(goods_ids),
-                "successCount": len(goods),
-                "failureCount": 0,
-                "goodsList": goods,
-                "failures": [],
-                "source": "direct",
-            }
-        self.direct_failures += 1
-        return None
 
     def evaluate(self, expression: str) -> Any:
         result = self.call(
@@ -293,12 +223,6 @@ class Browser:
     def query(self, goods_ids: list[int], show_id: str | None) -> dict:
         with self.lock:
             self.connect()
-            if self.last_shows:
-                selected_direct = show_id or self.last_shows[0]["showId"]
-                if selected_direct in {s["showId"] for s in self.last_shows}:
-                    direct = self._direct_query(goods_ids, selected_direct)
-                    if direct is not None:
-                        return direct
             self.call("Page.navigate", {"url": RECORD_URL})
             self.wait_for(
                 "(location.pathname==='/n-creator/live/live-record' && "
@@ -397,7 +321,6 @@ class Browser:
             except RuntimeError:
                 pass
             self.call("Network.clearBrowserCookies")
-            self.anti_content = None
             self.last_shows = []
             self.cookie_snapshot = None
             COOKIE_FILE.unlink(missing_ok=True)
