@@ -97,7 +97,7 @@ function classification(result) {
 function displayedSales(goods) {
   const tip=String(goods?.soldQuantityTip??'').trim();
   if(!tip)return {value:null,tip:'',invalid:false};
-  const match=tip.replace(/[\s,]/g,'').match(/(?:已拼|已抢|已售)(\d+(?:\.\d+)?)(万|亿)?/);
+  const match=tip.replace(/[\s,]/g,'').match(/(?:已拼|已抢|已售|热销)(\d+(?:\.\d+)?)(万|亿)?/);
   if(!match)return {value:null,tip,invalid:true};
   const multiplier=match[2]==='亿'?100000000:match[2]==='万'?10000:1;
   const value=Math.trunc(Number(match[1])*multiplier);
@@ -105,10 +105,9 @@ function displayedSales(goods) {
 }
 function salesStatus(item, threshold=10) {
   const g=item.goods;
-  if(item.failure||!g)return {label:'未知',tone:'unknown',key:'unknown'};
+  if(!g)return {label:'未知',tone:'unknown',key:'unknown'};
   if(typeof g.stock==='number'&&g.stock<=0)return {label:'售罄',tone:'soldout',key:'sold_out'};
   const sales=displayedSales(g);
-  if(sales.invalid)return {label:'未知',tone:'unknown',key:'unknown'};
   if(sales.value!==null&&sales.value>threshold)return {label:'已出',tone:'',key:'sold'};
   return {label:'未出',tone:'unsold',key:'unsold'};
 }

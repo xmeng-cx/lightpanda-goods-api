@@ -90,7 +90,7 @@ def database():
             sold_out INTEGER NOT NULL,
             unknown INTEGER NOT NULL,
             sales_threshold INTEGER NOT NULL DEFAULT 10,
-            metric_version INTEGER NOT NULL DEFAULT 2,
+            metric_version INTEGER NOT NULL DEFAULT 3,
             result_json TEXT NOT NULL
         )""")
         columns = {row[1] for row in connection.execute("PRAGMA table_info(batches)")}
@@ -101,10 +101,10 @@ def database():
         if "api_base" not in columns:
             connection.execute("ALTER TABLE batches ADD COLUMN api_base TEXT NOT NULL DEFAULT ''")
             connection.execute("UPDATE batches SET api_base = ? WHERE api_base = ''", (API_BASE,))
-        for row in connection.execute("SELECT id, result_json, sales_threshold FROM batches WHERE metric_version < 2"):
+        for row in connection.execute("SELECT id, result_json, sales_threshold FROM batches WHERE metric_version < 3"):
             result = json.loads(row["result_json"])
             totals = counts(result, row["sales_threshold"])
-            connection.execute("""UPDATE batches SET total=?, sold=?, unsold=?, sold_out=?, unknown=?, metric_version=2
+            connection.execute("""UPDATE batches SET total=?, sold=?, unsold=?, sold_out=?, unknown=?, metric_version=3
                 WHERE id=?""", (totals["total"], totals["sold"], totals["unsold"], totals["sold_out"], totals["unknown"], row["id"]))
         yield connection
         connection.commit()
@@ -118,14 +118,14 @@ def displayed_sales(goods: dict) -> int | None:
     if not tip:
         return None
     compact = re.sub(r"\s+", "", tip).replace(",", "")
-    match = re.search(r"(?:已拼|已抢|已售)(\d+(?:\.\d+)?)(万|亿)?", compact)
+    match = re.search(r"(?:已拼|已抢|已售|热销)(\d+(?:\.\d+)?)(万|亿)?", compact)
     if match is None:
-        raise ValueError(f"无法解析已拼显示：{tip}")
+        return None
     try:
         multiplier = {None: 1, "万": 10000, "亿": 100000000}[match.group(2)]
         return int(Decimal(match.group(1)) * multiplier)
-    except InvalidOperation as exc:
-        raise ValueError(f"无法解析已拼显示：{tip}") from exc
+    except InvalidOperation:
+        return None
 
 
 def counts(result: dict, sales_threshold: int = 10) -> dict:
@@ -136,16 +136,12 @@ def counts(result: dict, sales_threshold: int = 10) -> dict:
     for goods_id in requested:
         key = str(goods_id)
         item = goods.get(key)
-        if key in failures or item is None:
+        if item is None:
             totals["unknown"] += 1
         elif isinstance(item.get("stock"), (int, float)) and item["stock"] <= 0:
             totals["sold_out"] += 1
         else:
-            try:
-                sales = displayed_sales(item)
-            except ValueError:
-                totals["unknown"] += 1
-                continue
+            sales = displayed_sales(item)
             if sales is not None and sales > sales_threshold:
                 totals["sold"] += 1
             else:
@@ -317,14 +313,11 @@ def clear_batches(x_api_key: str | None = Header(default=None),
 
 def export_status(item: dict, threshold: int) -> str:
     goods = item["goods"]
-    if item["failure"] or not goods:
+    if not goods:
         return "未知"
     if isinstance(goods.get("stock"), (int, float)) and goods["stock"] <= 0:
         return "售罄"
-    try:
-        sales = displayed_sales(goods)
-    except ValueError:
-        return "未知"
+    sales = displayed_sales(goods)
     return "已出" if sales is not None and sales > threshold else "未出"
 
 

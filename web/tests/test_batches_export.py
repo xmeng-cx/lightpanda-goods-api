@@ -125,6 +125,26 @@ class BatchExportTest(unittest.TestCase):
             row = db.execute("SELECT total, unknown FROM batches WHERE id=?", (result["batchId"],)).fetchone()
         self.assertEqual(tuple(row), (2000, 2000))
 
+    def test_known_goods_never_have_unknown_sales_status(self):
+        goods = [
+            {"goodsId": "1", "soldQuantityTip": "热销2143件", "stock": 100},
+            {"goodsId": "2", "soldQuantityTip": "已拼6件", "stock": 100},
+            {"goodsId": "3", "soldQuantityTip": "其他文案", "stock": 100},
+        ]
+        result = {"requestedGoodsIds": ["1", "2", "3", "4"], "goodsList": goods,
+                  "failures": [{"goodsId": "1", "reason": "旧失败项"}, {"goodsId": "4", "reason": "未返回"}]}
+        self.assertEqual(goods_app.counts(result, 10),
+                         {"total": 4, "sold": 1, "unsold": 2, "sold_out": 0, "unknown": 1})
+        self.assertEqual(goods_app.export_status({"goods": goods[0], "failure": result["failures"][0]}, 10), "已出")
+        self.assertEqual(goods_app.export_status({"goods": goods[2], "failure": None}, 10), "未出")
+
+    def test_existing_batch_recounts_with_new_sales_rules(self):
+        with goods_app.database() as db:
+            db.execute("UPDATE batches SET metric_version=2, sold=0, unsold=0, unknown=2 WHERE id=2")
+        with goods_app.database() as db:
+            row = db.execute("SELECT sold, unsold, unknown, metric_version FROM batches WHERE id=2").fetchone()
+        self.assertEqual(tuple(row), (1, 0, 1, 3))
+
 
 
 if __name__ == "__main__":
